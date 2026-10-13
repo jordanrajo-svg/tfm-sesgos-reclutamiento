@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "Si utiliza este material, cite la versión y el commit consultados."
+title: "Evaluación y mitigación de sesgos en reclutamiento: corpus sintético, protocolo y resultados reproducibles"
+type: software
+authors:
+  - family-names: "Rajo Vázquez"
+    given-names: "Jordan"
+version: 2.0.0
+date-released: 2026-10-13
+repository-code: "https://github.com/jordanrajo-svg/tfm-sesgos-reclutamiento"
+abstract: "Banco de pruebas sintético en español para comparar rendimiento y equidad de clasificadores de CVs."

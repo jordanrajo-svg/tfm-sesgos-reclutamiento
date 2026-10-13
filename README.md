@@ -6,6 +6,14 @@ Material experimental del TFM de Jordan Rajo Vázquez, Máster en Inteligencia A
 
 ## Reproducir
 
+El código se publica como archivos consultables. Los datos, modelos y figuras de la ejecución se distribuyen junto con todo el proyecto en `TFM_Jordan_Rajo_Vazquez_material_completo.zip` (aproximadamente 19 MB). Tras clonar, descomprimir en la raíz con:
+
+```bash
+python -m zipfile -e TFM_Jordan_Rajo_Vazquez_material_completo.zip .
+```
+
+El archivo también se puede descargar y descomprimir sin Git. `MANIFEST_SHA256.json` permite verificar la integridad del contenido. Las huellas del registro de entrenamiento identifican los scripts presentes al terminar los ajustes; el manifiesto final incluye además las mejoras posteriores de presentación y explicación, sin cambios en los modelos ni en las predicciones.
+
 Python 3.12. En un entorno virtual nuevo:
 
 ```bash

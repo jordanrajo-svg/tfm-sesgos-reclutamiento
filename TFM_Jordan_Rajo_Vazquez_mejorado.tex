@@ -1,0 +1,929 @@
+% Documento autónomo, figuras vectoriales y bibliografía integradas.
+% Generado desde resultados verificados del experimento v2.0.0.
+% Compilar con pdfLaTeX; repetir para actualizar índice y referencias.
+% TFM completo: capítulos 1 a 7 y anexos A a D. Experimento reproducible adjunto.
+\documentclass[11pt,a4paper,oneside]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=3cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,tabularx,array,longtable}
+\usepackage{etoolbox}
+\usepackage{pgfplots}
+\usetikzlibrary{positioning,arrows.meta}
+\pgfplotsset{compat=1.18}
+\definecolor{modeloLR}{RGB}{36,110,152}
+\definecolor{modeloSVM}{RGB}{184,103,34}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={Evaluación y mitigación de sesgos en modelos de inteligencia artificial aplicados al reclutamiento mediante currículums sintéticos},pdfauthor={Jordan Rajo Vázquez},pdflang={es-ES}}
+\setstretch{1.04}
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0.22em}
+\setlength{\emergencystretch}{2em}
+\setcounter{tocdepth}{1}
+\setcounter{secnumdepth}{2}
+\setlist{itemsep=0.25em,topsep=0.4em}
+\titleformat{\chapter}[hang]{\normalfont\LARGE\bfseries}{\thechapter.}{0.6em}{}
+\titlespacing*{\chapter}{0pt}{0pt}{18pt}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}\renewcommand{\headrulewidth}{0pt}}
+\addto\captionsspanish{\renewcommand{\bibname}{Bibliografía}}
+% Numeración del capítulo de bibliografía sin duplicar la entrada en el índice.
+\patchcmd{\thebibliography}{\chapter*{\bibname}}{\chapter{\bibname}}{}{\PackageError{TFM}{No se pudo numerar la bibliografia}{Revisar la definicion de thebibliography.}}
+
+\newcommand{\tituloTFM}{Evaluación y mitigación de sesgos en modelos de inteligencia artificial aplicados al reclutamiento mediante currículums sintéticos}
+
+\begin{document}
+\begin{titlepage}
+\centering
+\vspace*{1.2cm}
+{\Large\bfseries Máster en Inteligencia Artificial\par}
+\vspace{2.1cm}
+{\large Trabajo Fin de Máster\par}
+\vspace{1cm}
+{\LARGE\bfseries\tituloTFM\par}
+\vfill
+{\large\textbf{Alumno}\par}
+\vspace{0.2cm}
+{\Large Jordan Rajo Vázquez\par}
+\vspace{1.2cm}
+{\large\textbf{Fecha de entrega}\par}
+\vspace{0.2cm}
+{\large 30 de octubre de 2026\par}
+\vspace*{1cm}
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Resumen}
+\addcontentsline{toc}{chapter}{Resumen}
+Este trabajo estudia cómo el desequilibrio de representación y las etiquetas históricas sesgadas afectan a clasificadores de currículums en español. Se construye un banco de pruebas de cinco corpus independientes, 10.000 perfiles profesionales y 60.000 CVs principales, con seis variantes de género y edad por perfil. Una rúbrica explícita permite distinguir idoneidad sintética y decisión observada. Se comparan regresión logística y SVM lineal sobre TF--IDF, cinco escenarios de datos y seis tratamientos, incluidos limpieza de señales indirectas, reponderación y reparación simulada de una muestra de etiquetas. La evaluación separa rendimiento, errores interseccionales e invariancia emparejada e incorpora cambio de formato y sensibilidad a la rúbrica. La contribución es un protocolo inspeccionable con predicciones individuales, verificación independiente y material reproducible. La limpieza exhaustiva garantiza invariancia en este generador, pero no corrige por sí sola todas las decisiones erróneas ni acredita equidad sobre candidaturas reales. Los resultados se interpretan como evidencia sobre mecanismos controlados, no como estimaciones de discriminación del mercado laboral.
+
+\noindent\textbf{Palabras clave:} selección de personal; equidad algorítmica; CVs sintéticos; procesamiento del lenguaje natural; auditoría; reproducibilidad.
+
+\section*{Abstract}
+This dissertation investigates how representation imbalance and biased training labels affect Spanish résumé classifiers. Five independently generated corpora contain 10,000 professional profiles and 60,000 primary résumés, with six paired gender--age variants per profile. An explicit rubric separates synthetic qualification from observed decisions. Logistic regression and linear SVM models using TF--IDF are evaluated under five data scenarios and six treatments, including proxy removal, reweighting and simulated partial label repair. Evaluation covers predictive performance, intersectional error rates, paired invariance, format shifts and rubric sensitivity. The contribution is an inspectable protocol with individual predictions, independent verification and reproducible materials. Exhaustive cleaning ensures invariance within the generator but does not guarantee correct classification or fairness for real applicants. Findings concern controlled mechanisms rather than the prevalence of labour-market discrimination.
+
+\noindent\textbf{Keywords:} recruitment; algorithmic fairness; synthetic résumés; natural language processing; auditing; reproducibility.
+\clearpage
+\tableofcontents
+\clearpage\listoffigures
+\clearpage
+\pagenumbering{arabic}
+
+\chapter{Introducción}
+\label{cap:introduccion}
+
+\section{Contexto: inteligencia artificial y selección de personal}
+
+La selección de personal combina la identificación de necesidades organizativas, la evaluación de candidaturas y la toma de decisiones sobre el acceso al empleo. Dentro de este proceso, el análisis de currículums constituye una primera aproximación a los conocimientos y la trayectoria profesional de una persona. La incorporación de herramientas de inteligencia artificial (IA) permite automatizar parte de ese análisis mediante la extracción de información, la clasificación de solicitudes o la ordenación de perfiles según su correspondencia con una oferta. Sin embargo, la transformación de un documento en una puntuación exige decidir qué información resulta relevante y qué criterio define una candidatura adecuada.
+
+Estas decisiones no son exclusivamente técnicas. Un modelo entrenado para reproducir contrataciones anteriores aprende a aproximar el comportamiento registrado en esos datos, que no tiene por qué coincidir con una evaluación justa de las competencias. Raghavan et al.\ \cite{raghavan2020} examinan las prácticas de proveedores de herramientas de contratación y muestran la importancia de analizar conjuntamente la definición del objetivo, la validación y las afirmaciones sobre mitigación de sesgos. Su estudio sitúa el problema en el diseño completo del proceso, más allá de la elección de un algoritmo concreto.
+
+El procesamiento del lenguaje natural (PLN) añade otra dimensión a esta cuestión. Un CV contiene cualificaciones explícitas, pero también nombres, fechas, formas de expresión y referencias contextuales. Parte de esa información puede actuar como señal de características personales ajenas a los requisitos del puesto. Por ello, un sistema puede producir diferencias entre grupos incluso cuando no recibe una variable estructurada denominada género o edad. La cuestión central de este TFM consiste en estudiar cómo se manifiestan esas diferencias en un entorno controlado y qué intervenciones permiten reducirlas.
+
+\section{Justificación del problema y relevancia del estudio}
+
+El acceso a una entrevista representa una oportunidad concreta. Un falso negativo puede excluir a una persona que satisface los requisitos de una oferta; si ese error se concentra en un grupo, la calidad global del modelo no describe adecuadamente sus consecuencias. Por ejemplo, dos clasificadores con el mismo porcentaje total de aciertos pueden distribuir los rechazos erróneos de forma muy distinta. Una evaluación útil debe considerar tanto la capacidad de identificar perfiles adecuados como el reparto de los errores.
+
+La utilización de CVs sintéticos responde a la necesidad de construir comparaciones reproducibles. Permite fijar competencias y experiencia, variar atributos personales y conocer las reglas que originan las etiquetas. También facilita diseñar escenarios de entrenamiento con distintos grados de desequilibrio o de asociación entre atributos sensibles y decisiones favorables. El interés científico reside en observar la respuesta de los modelos a esas condiciones, distinguiendo los efectos introducidos deliberadamente de las diferencias que aparecen por la representación del texto o el aprendizaje.
+
+Esta elección no convierte los datos sintéticos en una reproducción fiel del mercado laboral. Sus propiedades dependen del generador, las plantillas y las reglas utilizadas. Por tanto, el estudio se plantea como un banco de pruebas experimental: permite analizar mecanismos y comparar intervenciones dentro de los escenarios definidos, sin estimar directamente la prevalencia de discriminación en empresas reales. Esta delimitación hace viable una investigación de alcance acotado y evita atribuir a los resultados una generalidad que el diseño no puede sostener.
+
+\section{Objetivo general y objetivos específicos}
+
+El objetivo general es evaluar cómo modelos de IA entrenados con CVs sintéticos pueden reproducir o amplificar diferencias asociadas al género y la edad en la preselección de candidaturas, y comparar mecanismos de mitigación considerando simultáneamente la equidad y el rendimiento predictivo.
+
+Este objetivo se concreta en las siguientes actuaciones:
+\begin{enumerate}
+\item Diseñar un conjunto de CVs sintéticos con variables profesionales, atributos personales y reglas de adecuación a una oferta explícitamente documentadas.
+\item Construir escenarios de entrenamiento que permitan diferenciar el desequilibrio de representación del sesgo introducido en las etiquetas.
+\item Entrenar y comparar una regresión logística y una SVM lineal con una representación TF--IDF común de los CVs.
+\item Medir el rendimiento global y por grupos, así como las diferencias de selección y de errores por género, edad y sus intersecciones.
+\item Analizar la sensibilidad de las predicciones mediante pares de CVs equivalentes en sus requisitos profesionales.
+\item Evaluar cinco intervenciones de mitigación, además de la referencia original, y formular recomendaciones ajustadas a sus beneficios, costes y limitaciones.
+\end{enumerate}
+
+\section{Preguntas de investigación}
+
+La investigación se organiza alrededor de cuatro preguntas. \textbf{PI1:} ¿en qué medida las diferencias de representación y de etiquetado del entrenamiento se trasladan a las predicciones? \textbf{PI2:} ¿cómo varían las disparidades por género y edad entre una regresión logística y una SVM lineal con la misma representación léxica del CV? \textbf{PI3:} ¿cambia la decisión cuando se modifican señales personales manteniendo constantes los requisitos profesionales? \textbf{PI4:} ¿qué mejoras de equidad se obtienen mediante las técnicas de mitigación y qué efecto tienen sobre la identificación de candidaturas adecuadas?
+
+Estas preguntas no presuponen que todos los modelos discriminen ni que una técnica sea superior en cualquier escenario. La existencia, magnitud y dirección de las diferencias se evaluaron mediante los experimentos. También se considera un resultado relevante que una disparidad desaparezca bajo determinadas condiciones o que una intervención mejore una métrica y empeore otra.
+
+\section{Alcance y enfoque del trabajo}
+
+La tarea realizada fue la clasificación de candidaturas para una oferta ficticia de analista de datos. La salida favorable representa pasar a una fase posterior de evaluación, no recibir una oferta de empleo. Se utilizaron CVs textuales en español y se estudiaron género y edad. Otros atributos quedan fuera del experimento y pueden considerarse en ampliaciones posteriores.
+
+El diseño comparó regresión logística y SVM lineal sobre TF--IDF, con entrenamiento supervisado a partir de datos sintéticos. Se compararon reponderación, supresión de cabeceras, limpieza de señales indirectas y combinaciones con reparación parcial de etiquetas. Se realizaron pruebas de sensibilidad y evaluación con formatos reservados. El capítulo metodológico detalla modelos, tamaños, particiones e hiperparámetros. Las representaciones semánticas preentrenadas se mantienen como antecedente teórico y posible ampliación; no se utilizaron en esta ejecución.
+
+Las etiquetas de evaluación se definieron mediante una regla profesional de referencia independiente de los atributos sensibles. Al introducir sesgo en el entrenamiento, se conservó esa referencia para distinguir la imitación de decisiones sesgadas de la adecuación profesional simulada. La regla sigue siendo una construcción del estudio y no una medida demostrada del desempeño laboral futuro.
+
+
+
+\chapter{Marco teórico y estado del arte}
+\label{cap:marco}
+
+\section{Aprendizaje automático aplicado al reclutamiento}
+
+\subsection{De los requisitos profesionales a una tarea predictiva}
+
+El filtrado de CVs puede formularse como clasificación, estimación de una puntuación u ordenación de candidatos. Estas formulaciones producen decisiones diferentes: un clasificador compara cada perfil con un umbral, mientras que un sistema de ordenación distribuye posiciones dentro de una lista. En este TFM se adopta la clasificación binaria para facilitar el análisis de errores y comparaciones entre grupos. Si se añadiera una selección de los primeros puestos de una lista, sería necesario evaluar además cómo influye el tamaño de la lista en la exposición de cada grupo.
+
+Sea $X$ la representación de las características profesionales y del texto de un CV, $A$ el atributo personal estudiado, $Y^{*}$ la adecuación definida por la regla de referencia y $\widetilde{Y}$ la etiqueta utilizada para entrenar. Un modelo produce una puntuación $s_{\theta}(X)$ y una decisión:
+\begin{equation}
+\widehat{Y}=\mathbb{I}\{s_{\theta}(X)\geq t\},
+\end{equation}
+donde $\theta$ recoge los parámetros aprendidos, $t$ es el umbral y $\mathbb{I}$ la función indicadora. Aunque $A$ no figure como entrada explícita, su información puede estar contenida indirectamente en $X$. En los escenarios sin alteración de etiquetas se tendrá $\widetilde{Y}=Y^{*}$; en los escenarios sesgados, ambas variables podrán diferir.
+
+Esta distinción evita una ambigüedad central del experimento. Un modelo puede aprender correctamente las etiquetas de entrenamiento y, al mismo tiempo, alejarse de la regla profesional prevista. Por ello, reproducir el etiquetado observado no bastará para concluir que el sistema es adecuado. La validación deberá especificar siempre qué variable se utiliza como referencia y qué significado tiene una decisión favorable.
+
+\subsection{Representaciones textuales y modelos de referencia}
+
+Una representación TF--IDF asigna peso a los términos según su frecuencia en un documento y su frecuencia inversa en la colección. Así, combina información local con la capacidad discriminativa de una palabra dentro del corpus \cite{manning2008}. Asociada a una regresión logística, ofrece un punto de partida de coste computacional reducido y permite inspeccionar la contribución de características léxicas. Su limitación principal para este caso es que expresiones distintas de una misma competencia pueden tratarse como características separadas.
+
+Las representaciones semánticas densas buscan aproximar semejanzas de significado. Sentence-BERT propone obtener vectores de frases mediante una arquitectura entrenada para comparaciones semánticas \cite{reimers2019}. Una ampliación con un codificador apropiado para español deberá comprobar la longitud admitida, la estrategia de agregación de secciones y la cobertura lingüística. La idoneidad de un modelo para similitud textual no demuestra, por sí misma, su validez para juzgar adecuación profesional.
+
+En el experimento realizado se mantuvo TF--IDF como representación común y se compararon dos clasificadores. Esta elección permite estudiar el efecto de la familia de aprendizaje bajo las mismas particiones, etiquetas de referencia y búsqueda de regularización. La comparación con representaciones semánticas queda fuera del alcance empírico.
+
+\section{Origen y manifestaciones del sesgo}
+
+\subsection{Sesgos a lo largo del ciclo de vida}
+
+Suresh y Guttag \cite{suresh2021} distinguen fuentes de daño relacionadas con la historia de los datos, su representación y medición, la agregación, el aprendizaje, la evaluación y el despliegue. Su marco permite localizar problemas que quedarían ocultos si el sesgo se atribuyera únicamente al conjunto de entrenamiento. Aplicado al reclutamiento, invita a examinar quién aparece en los datos, qué se considera éxito y cómo se utiliza la predicción.
+
+En este estudio, el \textit{sesgo de representación} se operacionalizará mediante diferencias en el número de CVs disponibles por grupo. El \textit{sesgo de etiquetado} se simulará alterando la probabilidad de recibir una etiqueta favorable para perfiles de cualificación comparable. Se tratarán como factores distintos: aumentar la presencia de un grupo no garantiza que sus etiquetas sean adecuadas. Asimismo, el generador se revisará para evitar que asigne sistemáticamente un estilo, una longitud o determinadas competencias a una categoría demográfica.
+
+La evaluación agregada puede ocultar resultados adversos en subgrupos pequeños. En consecuencia, cada métrica se acompañará del número de observaciones que la sustenta. Si un subgrupo carece de casos positivos o negativos, algunas tasas no estarán definidas; no se sustituirán por cero, porque ello transmitiría una falsa ausencia de errores.
+
+\subsection{Atributos explícitos, variables indirectas e intersecciones}
+
+La eliminación de nombres y pronombres no asegura que desaparezca la información asociada al género. De-Arteaga et al.\ \cite{dearteaga2019}, en una tarea de clasificación de ocupaciones a partir de biografías, observaron diferencias de rendimiento y señales indirectas incluso después de retirar indicadores explícitos. Este antecedente justifica comprobar empíricamente la eficacia de la supresión de atributos. Su tarea, sin embargo, es clasificar ocupaciones y no decidir contrataciones, por lo que sus resultados no deben trasladarse directamente a la selección de personal.
+
+En el experimento propuesto, los nombres se tratarán como señales lingüísticas manipuladas y no como un procedimiento para inferir la identidad real de una persona. Las categorías de género utilizadas se documentan como decisiones de diseño. Si el tamaño muestral obliga a limitar las categorías comparadas, esa restricción se explicitará y no se presentará como una descripción exhaustiva del género.
+
+La edad plantea una dificultad adicional: suele estar relacionada con la duración de la experiencia y con fechas educativas. Cambiar únicamente una fecha de nacimiento puede producir un CV incoherente. Para evitarlo se diseñarán perfiles plausibles con experiencia relevante comparable y se distinguirá la modificación de una señal explícita del estudio de trayectorias completas. El análisis interseccional cruzará género y grupos de edad para comprobar si los promedios marginales ocultan patrones específicos. El experimento utiliza las edades puntuales de 28, 43 y 58 años, fijadas antes de observar resultados; no estima efectos para intervalos completos.
+
+\section{Evaluación del rendimiento y de la equidad}
+
+\subsection{Calidad predictiva y distribución de errores}
+
+La matriz de confusión distinguirá verdaderos positivos, falsos positivos, verdaderos negativos y falsos negativos respecto de $Y^{*}$. En esta aplicación, un falso negativo será un CV que cumple la regla de referencia y queda excluido. Se calcularán precisión, sensibilidad y F1, junto con resultados desagregados. La exactitud global se interpretará atendiendo a la distribución de clases: un modelo que rechaza casi todas las candidaturas puede acertar con frecuencia cuando la clase favorable es minoritaria y resultar poco útil para encontrar perfiles adecuados.
+
+El umbral forma parte del sistema evaluado. Cambiarlo modifica tanto los errores como las tasas de selección, por lo que deberá quedar especificado antes de evaluar la prueba. En este experimento se utilizaron los umbrales convencionales fijos de cada clasificador. El conjunto de prueba se reservará para la comparación final. Las variantes de un mismo perfil permanecerán en una única partición para evitar que el modelo encuentre en la evaluación textos casi idénticos a los utilizados durante el entrenamiento.
+
+\subsection{Paridad demográfica e igualdad de oportunidades}
+
+Para un grupo $a$, se define la tasa de selección $SR_a=P(\widehat{Y}=1\mid A=a)$. Una medida descriptiva de disparidad es:
+\begin{equation}
+\Delta_{\mathrm{DP}}=\max_a SR_a-\min_a SR_a.
+\end{equation}
+Un valor nulo representa paridad de selección entre los grupos considerados. Esta medida no utiliza la cualificación de referencia, de modo que necesita interpretarse junto con la composición del conjunto evaluado. En el banco de pruebas se podrán construir grupos con cualificación equivalente para facilitar esa interpretación; no se supondrá que tal equivalencia existe automáticamente en cualquier población.
+
+Hardt et al.\ \cite{hardt2016} formalizan la igualdad de oportunidades mediante la igualdad de tasas de verdaderos positivos y la igualdad de probabilidades condicionadas mediante la coincidencia de verdaderos y falsos positivos. Con $TPR_a=P(\widehat{Y}=1\mid Y^{*}=1,A=a)$ y $FPR_a=P(\widehat{Y}=1\mid Y^{*}=0,A=a)$, se utilizarán:
+\begin{align}
+\Delta_{\mathrm{EOpp}}&=\max_a TPR_a-\min_a TPR_a,\\
+\Delta_{\mathrm{EOdds}}&=\max\left\{\Delta_{\mathrm{EOpp}},\max_a FPR_a-\min_a FPR_a\right\}.
+\end{align}
+La primera diferencia permite estudiar si los CVs adecuados tienen oportunidades comparables de superar el filtro. La segunda incorpora también la selección incorrecta. Ambas dependen de la validez de $Y^{*}$: si la referencia incorpora un criterio injustificado, una aparente igualdad de errores puede ser engañosa.
+
+\subsection{Compatibilidad de criterios e incertidumbre}
+
+Las nociones de equidad responden a preguntas diferentes. Kleinberg et al.\ \cite{kleinberg2017} demuestran incompatibilidades entre condiciones de calibración y equilibrio de puntuaciones entre grupos, salvo casos restringidos. Su resultado no implica que toda mejora de equidad exija perder exactitud, sino que no cabe asumir que distintos criterios puedan satisfacerse simultáneamente en cualquier distribución.
+
+En este TFM se priorizará la igualdad de oportunidades respecto de la regla profesional, y se utilizarán las restantes medidas como información complementaria. La comparación recogerá cambios absolutos, tamaños de grupo y variabilidad entre repeticiones. Se plantearán intervalos mediante remuestreo de perfiles base, conservando juntas sus variantes. Las diferencias pequeñas no se interpretan automáticamente como ausencia de sesgo, ni la significación estadística sustituirá la valoración de su magnitud práctica.
+
+\section{Pruebas emparejadas y datos sintéticos}
+
+\subsection{Comparaciones controladas de CVs}
+
+Kusner et al.\ \cite{kusner2017} desarrollan una noción causal de equidad contrafactual que compara decisiones en mundos alternativos definidos mediante un modelo causal. Esa noción es más exigente que sustituir un nombre en un documento. En este trabajo, las pruebas se denominarán \textit{comparaciones emparejadas de sensibilidad}: observarán qué sucede al cambiar señales previamente especificadas, sin afirmar que identifican todos los efectos causales del género o la edad.
+
+Para $n$ pares de CVs equivalentes en los requisitos relevantes, una medida utilizada es la diferencia media absoluta de puntuación:
+\begin{equation}
+D_{\mathrm{par}}=\frac{1}{n}\sum_{i=1}^{n}\left|s_{\theta}(x_i^{(a)})-s_{\theta}(x_i^{(b)})\right|.
+\end{equation}
+Se informará también de la diferencia con signo y de la proporción de pares cuya decisión cambia. La primera evita que efectos opuestos se cancelen; la segunda indica qué variante resulta favorecida; la tercera conecta el cambio de puntuación con la preselección efectiva. Estas medidas describirán exclusivamente las modificaciones ensayadas.
+
+\subsection{Ventajas y límites de la generación sintética}
+
+Saldivar et al.\ \cite{saldivar2025} presentan una propuesta de construcción de CVs sintéticos basada en características de materiales obtenidos mediante donación de datos, junto con una colección de 1.730 CVs. Este preprint constituye un antecedente directamente relacionado con la disponibilidad de recursos para evaluar herramientas de contratación. Su aportación apoya la utilidad de documentar el proceso generativo, pero no demuestra que cualquier conjunto sintético reproduzca la diversidad del empleo real.
+
+Para este TFM, la generación se organizará en dos niveles: una ficha estructurada que establezca las competencias y una realización textual que las exprese. La etiqueta de referencia se calculará a partir de la ficha, evitando que dependa de la fluidez de la redacción. Las plantillas se distribuirán entre grupos y se revisarán duplicados, contradicciones y asociaciones accidentales. En la ejecución realizada se utilizaron reglas y plantillas, sin apoyo de un modelo generativo.
+
+La separación entre generación, etiquetado y evaluación permitirá distinguir tareas que, de otro modo, podrían confundirse. Un sistema que identifica la plantilla asociada a la clase positiva no ha demostrado comprender requisitos profesionales. Asimismo, evaluar solo con el mismo estilo de texto utilizado para entrenar puede favorecer una generalización aparente. La evaluación con estilos de redacción reservados constituiría una comprobación adicional. No se realizó en este experimento, cuyas particiones comparten el mismo repertorio de plantillas.
+
+\section{Técnicas de mitigación de sesgos}
+
+\subsection{Intervenciones sobre los datos}
+
+Kamiran y Calders \cite{kamiran2012} estudian procedimientos de preprocesamiento como supresión de atributos, modificación de etiquetas, reponderación y remuestreo. La reponderación modifica la contribución de los ejemplos durante el aprendizaje para reducir asociaciones no deseadas entre grupo y etiqueta. Su atractivo experimental es que permite mantener la familia de modelos y comparar el efecto de cambiar los pesos de entrenamiento.
+
+La primera intervención repondera combinaciones de grupo y etiqueta únicamente dentro del entrenamiento. Al interpretarla deben considerarse pesos extremos y combinaciones escasas, porque un grupo con muy pocos ejemplos no adquiere diversidad por recibir más peso. La segunda intervención elimina la cabecera demográfica mediante reglas documentadas. La comparación antes y después de la transformación permite observar cómo cambian el rendimiento y las diferencias entre grupos.
+
+Estas intervenciones abordarán mecanismos distintos. La reponderación actúa sobre la influencia relativa de los ejemplos; la supresión modifica la información disponible. Ninguna se considera satisfactoria por su intención: ambas deberán mostrar mejoras sobre el mismo conjunto de prueba y en las métricas predefinidas. Además, los atributos de auditoría se conservarán separados de las entradas del clasificador para poder medir resultados por grupo.
+
+\subsection{Restricciones durante el aprendizaje y ajustes posteriores}
+
+Agarwal et al.\ \cite{agarwal2018} plantean la clasificación con restricciones de equidad como una secuencia de problemas de aprendizaje sensibles al coste. Este enfoque permite incorporar explícitamente condiciones estadísticas durante el entrenamiento. Constituye una alternativa a modificar los datos, aunque requiere elegir la restricción y evaluar su cumplimiento fuera de la muestra de ajuste.
+
+El posprocesamiento ajusta decisiones de un predictor ya entrenado. Puede modificar umbrales para aproximar un criterio de equidad, como muestran Hardt et al.\ \cite{hardt2016}. Sin embargo, algunas variantes requieren conocer el grupo en el momento de decidir. Por ello, el análisis de una técnica debe considerar no solo sus métricas, sino también qué información necesita para aplicarse. En el alcance inicial del TFM, estas familias servirán de contexto y posible ampliación; la comparación principal se concentrará en las dos intervenciones sobre datos descritas anteriormente.
+
+\section{Consideraciones éticas y marco regulatorio}
+
+\subsection{Justificación, transparencia y supervisión}
+
+La evaluación ética requiere justificar por qué una característica interviene en la decisión y cómo se relaciona con el puesto. En el experimento, esta exigencia se traduce en una regla explícita de adecuación, una descripción de los errores relevantes y una separación entre observación y recomendación. Una explicación legible del modelo puede ayudar a inspeccionar una predicción, pero no convierte por sí sola el criterio aprendido en aceptable.
+
+Las propuestas de \textit{datasheets} para conjuntos de datos \cite{gebru2021} y de \textit{model cards} para modelos \cite{mitchell2019} ofrecen referencias para documentar procedencia, composición, usos previstos y resultados desagregados. El TFM adapta esos principios a una ficha del conjunto sintético y a un registro de cada modelo. También documenta las limitaciones de las categorías demográficas y las condiciones en las que no puede interpretarse una métrica.
+
+La supervisión humana se considera parte del proceso de uso. Una puntuación no debería sustituir la revisión de los requisitos y de la información del CV. Como el trabajo no despliega un sistema con personas candidatas reales, las recomendaciones de supervisión tienen carácter de diseño y no se presentan como medidas cuya eficacia se haya comprobado experimentalmente.
+
+\subsection{Normativa europea y española}
+
+El Reglamento (UE) 2024/1689 incluye en su anexo III determinados sistemas destinados a la contratación, al filtrado de solicitudes y a la evaluación de candidatos. La clasificación jurídica concreta requiere atender a su finalidad y a las condiciones del artículo 6. El marco de alto riesgo contempla aspectos como gestión de riesgos, gobernanza de datos, documentación y supervisión humana \cite{aiact2024}. La información oficial de la Comisión consultada el 13 de octubre de 2026 sitúa la aplicación de las reglas de los ámbitos de alto riesgo del anexo III, incluido empleo, el 2 de diciembre de 2027, tras la modificación del calendario \cite{comision2026,omnibus2026}. Se distingue así la existencia del marco de la fecha de aplicación de sus obligaciones específicas.
+
+El Reglamento General de Protección de Datos resulta relevante cuando se tratan datos personales. Su artículo 22 regula las decisiones basadas únicamente en tratamiento automatizado que produzcan efectos jurídicos o afecten significativamente de modo similar, con excepciones y salvaguardias. No equivale a una prohibición general de utilizar IA en selección. Además, el uso de información debe respetar principios como finalidad, minimización y licitud \cite{rgpd2016}. Los atributos sensibles para una auditoría de equidad no coinciden necesariamente con las categorías especiales del artículo 9; género y edad no deben agruparse automáticamente bajo esa categoría jurídica.
+
+En España, la Ley 15/2022 aborda la igualdad de trato y la no discriminación, incluido el empleo. Su artículo 23 recoge previsiones sobre algoritmos e IA, con referencias a sesgos, transparencia y rendición de cuentas \cite{ley152022}. En este TFM, estas normas sustentan la relevancia del problema y la necesidad de documentación. El cumplimiento de una métrica estadística no se interpreta como una certificación de cumplimiento legal, y el experimento académico no se equipara a la puesta en servicio de una herramienta comercial.
+
+\section{Estado del arte y síntesis crítica}
+La revisión se organizó alrededor de tres preguntas: cómo se genera el sesgo en selección automatizada, cómo se auditan diferencias entre candidaturas comparables y qué información necesita una mitigación. Se priorizaron publicaciones originales, documentación técnica oficial y normas primarias. Se combinaron términos relativos a \emph{algorithmic hiring}, \emph{resume screening}, \emph{synthetic CVs}, \emph{fairness} y \emph{audit studies}. Se incluyeron estudios con tarea, datos o mecanismo identificables y se distinguió entre clasificación de profesiones, recuperación de CVs y decisiones de selección. No se presenta un recuento de cribado ni una evaluación exhaustiva de calidad, porque la revisión es narrativa y no sigue un protocolo sistemático registrado.
+
+
+\subsection{De las representaciones profesionales a las auditorías de selección}
+
+Los antecedentes seleccionados recorren tres niveles complementarios. Raghavan et al.\ \cite{raghavan2020} examinan las afirmaciones y prácticas organizativas de las herramientas de contratación; De-Arteaga et al.\ \cite{dearteaga2019} estudian cómo las representaciones de biografías mantienen diferencias asociadas al género; y Wilson y Caliskan \cite{wilson2024} analizan una simulación de recuperación de CVs mediante modelos de representaciones textuales. Este último trabajo muestra la pertinencia de auditar señales asociadas a nombres e intersecciones demográficas y de considerar factores como la longitud del documento. Aquí se toma como antecedente de diseño, sin trasladar sus porcentajes a otro idioma, población o modelo.
+
+La evidencia sobre datos sintéticos complementa esas auditorías. La propuesta de Saldivar et al.\ \cite{saldivar2025} aporta un recurso orientado a estudiar discriminación en contratación, aunque su condición de preprint y las propiedades de su generador deben tenerse presentes. El TFM se apoya en esta línea para construir un experimento propio, sin asumir que la generación sintética resuelve automáticamente los problemas de validez.
+
+Una aportación reciente especialmente relevante para la edad es la de Sariola et al.\ \cite{sariola2026}. A partir de datos de una auditoría de discriminación por edad, evalúan intervenciones de remuestreo y muestran que una aparente paridad bajo medidas convencionales puede coexistir con disparidades al utilizar una evaluación más adecuada. La implicación para este trabajo es concreta: la mitigación no debe juzgarse únicamente con las mismas etiquetas y supuestos que pudieron originar el sesgo.
+
+\subsection{Comparación de aportaciones y límites}
+
+La tabla~\ref{tab:antecedentes} sintetiza las diferencias entre los antecedentes directamente relacionados con el caso. La selección combina trabajos fundacionales y contribuciones recientes localizadas en fuentes académicas primarias. Se trata de una revisión narrativa focalizada, no de una revisión sistemática con pretensión de exhaustividad. Las fuentes y el marco normativo se han consultado hasta el 5 de octubre de 2026, con actualización del calendario regulatorio el 13 de octubre de 2026.
+
+\begin{table}[htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\caption{Antecedentes relevantes y relación con el diseño del TFM. Síntesis propia.}
+\label{tab:antecedentes}
+\begin{tabularx}{\textwidth}{@{}p{2.7cm}XX@{}}
+\toprule
+\textbf{Trabajo} & \textbf{Aportación al estudio} & \textbf{Límite de transferencia}\\
+\midrule
+Raghavan et al.\ (2020) & Conecta validación, objetivo y prácticas de mitigación. & No estima el sesgo de los modelos entrenados aquí.\\
+De-Arteaga et al.\ (2019) & Motiva examinar señales indirectas en texto. & Clasifica ocupaciones; no evalúa contrataciones.\\
+Wilson y Caliskan (2024) & Orienta auditorías de CVs y análisis interseccionales. & Estudia recuperación textual en un contexto específico.\\
+Saldivar et al.\ (2025) & Aporta un precedente de CVs sintéticos documentados. & La validez depende del generador y la población representada.\\
+Sariola et al.\ (2026) & Cuestiona evaluar mitigaciones con referencias sesgadas. & Utiliza un diseño y datos de auditoría distintos.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Posicionamiento y contribución del TFM}
+
+El espacio de contribución del trabajo consiste en integrar un diseño manejable y reproducible: CVs sintéticos en español, dos clasificadores con representación textual común, género y edad como ejes principales, y comparación antes y después de mitigar. Su interés no depende de proponer un algoritmo nuevo, sino de hacer explícitas las relaciones entre generación de datos, etiquetas, decisiones y métricas.
+
+La aportación es un protocolo que permite identificar bajo qué escenarios aparece una disparidad y qué cambia al intervenir. La referencia profesional independiente, la reserva de perfiles completos por partición y las pruebas emparejadas refuerzan la interpretación de los resultados. Aun así, permanecen límites derivados de la simplificación de trayectorias, el tamaño de los subgrupos y la ausencia de resultados laborales reales. Las conclusiones se formulan dentro de ese alcance y señalan qué comprobaciones adicionales serían necesarias antes de trasladar una recomendación a una organización.
+
+\chapter{Metodología y diseño experimental}
+\label{cap:metodologia}
+\section{Diseño, unidad experimental y preguntas contrastables}
+Se realizó un experimento factorial controlado sobre una oferta ficticia de analista de datos. La unidad profesional es el perfil base; sus seis CVs son observaciones emparejadas, no seis personas independientes. La variable objetivo $y^*$ expresa cumplimiento de una rúbrica conocida. La etiqueta observada $\tilde y$ representa la decisión histórica simulada que recibe el modelo. Esta separación permite detectar que reproducir fielmente una etiqueta histórica puede empeorar la evaluación profesional.
+
+Se cruzaron cuatro escenarios principales, seis tratamientos y dos clasificadores, y se añadió un control del tamaño muestral para ambos modelos sin mitigación. El diseño se repitió sobre cinco corpus generados independientemente. Se mantuvieron comunes, dentro de cada réplica, los perfiles, las particiones y los números aleatorios que determinan retención y corrupción. Así, las comparaciones entre tratamientos son pareadas y no mezclan una intervención con un cambio arbitrario del conjunto de prueba.
+
+Las hipótesis de trabajo son: la corrupción de etiquetas produce disparidades mayores que un desequilibrio aislado de representación; ocultar únicamente los datos explícitos no garantiza invariancia si quedan señales indirectas; la eliminación completa de las señales insertadas reduce las diferencias entre variantes, aunque puede conservar errores compartidos; y reparar parte de las etiquetas puede mejorar la recuperación de positivos. Estas expectativas guían los contrastes, pero no constituyen resultados. El protocolo quedó fijado antes del ajuste completo; no se realizó una preregistración externa.
+
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=3mm, every node/.style={draw=blue!40!black,rounded corners,fill=blue!4,text width=11.9cm,align=center,font=\small,inner sep=5pt}]
+\node (n0) {Generación independiente de perfiles y rúbrica $y^*$};
+\node[below=of n0] (n1) {Partición por perfil: entrenamiento 60\%, validación 20\%, prueba 20\%};
+\draw[-{Latex},thick] (n0) -- (n1);
+\node[below=of n1] (n2) {Solo entrenamiento: retención y corrupción $y^*\rightarrow\tilde y$};
+\draw[-{Latex},thick] (n1) -- (n2);
+\node[below=of n2] (n3) {Tratamiento + TF--IDF + LR/SVM; C seleccionado en validación};
+\draw[-{Latex},thick] (n2) -- (n3);
+\node[below=of n3] (n4) {Prueba intacta: rendimiento, grupos, pares y formato reservado};
+\draw[-{Latex},thick] (n3) -- (n4);
+\end{tikzpicture}
+\caption[Flujo experimental y separación de información]{Flujo experimental y separación de información. La referencia limpia de prueba no interviene en el ajuste.}\label{fig:proceso}\end{figure}
+
+
+\section{Generación de perfiles y diversidad de los CVs}
+\subsection{Variables profesionales y criterio de referencia}
+Cada réplica contiene 2.000 perfiles, obtenidos mediante muestreo aleatorio y aceptación hasta reunir 1.000 positivos y 1.000 negativos. La probabilidad inicial de cada una de las cuatro competencias es 0,55; el equilibrio de clases se impone después mediante la rúbrica. En consecuencia, las frecuencias finales de competencias no tienen por qué mantener esa probabilidad ni ser independientes. No se pretende imitar la distribución real de solicitantes.
+
+Se generan conocimientos de SQL, Python, visualización y estadística; experiencia relevante entre uno y ocho años; e inglés B1, B2 o C1. La puntuación es
+\begin{equation}
+ \begin{aligned}q&=2x_{\mathrm{SQL}}+2x_{\mathrm{Python}}+x_{\mathrm{visualización}}+x_{\mathrm{estadística}}+\mathbb{1}(e\geq2)+\mathbb{1}(i\in\{B2,C1\}),\\ y^*&=\mathbb{1}(q\geq6).\end{aligned}
+\end{equation}
+La mayor ponderación de SQL y Python representa una decisión de diseño de la oferta, no una escala validada por especialistas. La puntuación no se incluye en el texto que reciben los clasificadores. Las competencias ausentes no aparecen como negaciones; por ello, interpretar correctamente negaciones explícitas queda fuera del alcance del banco de pruebas. Una regla aplicada a los atributos estructurados alcanzaría acierto perfecto por definición: sirve para verificar etiquetas, no como competidor independiente de la tarea de lectura del CV.
+
+Para evitar que el corpus se reduzca a seis textos casi idénticos, se incorporan seis titulaciones, ocho sectores, doce competencias complementarias, entre uno y tres equipos de trabajo, cinco duraciones de formación, seis proyectos, cinco entregables, tres modalidades y tres disponibilidades. Cada competencia puntuable dispone de tres formulaciones y se altera su orden. Se utilizan ocho disposiciones de secciones durante el desarrollo y se varía la longitud mediante una sección no puntuable opcional. Estas variables enriquecen el texto, pero no añaden puntos a la rúbrica. Son variaciones combinatorias controladas, no una evaluación experta del realismo de las trayectorias.
+
+\subsection{Variantes demográficas y señales indirectas}
+Por cada perfil se generan seis variantes: hombre y mujer, cruzados con tres intervalos de edad, 24--34, 38--48 y 52--62 años. Se muestrea una edad en cada intervalo y se comparte entre las variantes de género. Se seleccionan nombres ficticios de listas de 16 nombres por categoría y doce apellidos. Su eventual coincidencia con personas existentes es accidental; no se consultó información personal.
+
+Todas las variantes mantienen competencias, experiencia, titulación, proyecto, estilo y longitud estructural. Cambian el nombre, el género y la edad de la cabecera, la flexión \emph{organizado/organizada} y el año de finalización, calculado como $2026-\mathrm{edad}+20$. El año introduce deliberadamente una señal de edad fuera de la cabecera. La finalización uniforme a los veinte años simplifica trayectorias educativas diversas, y el CV no detalla una cronología completa de empleos. La experiencia es experiencia relevante acumulada, no antigüedad total; no se infiere ausencia de actividad laboral durante los años restantes. Estas simplificaciones limitan la plausibilidad biográfica.
+
+El emparejamiento representa intervenciones sobre \emph{señales textuales} demográficas. No permite afirmar que se haya construido un modelo causal completo del efecto de género o edad sobre una carrera. El género binario y tres intervalos separados de edad son decisiones instrumentales; se excluyen identidades no binarias y edades fuera de esos rangos. La equidad observada solo se refiere a las categorías representadas.
+
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=3mm, every node/.style={draw=blue!40!black,rounded corners,fill=blue!4,text width=11.9cm,align=center,font=\small,inner sep=5pt}]
+\node (n0) {Perfil profesional: competencias, experiencia e inglés $\rightarrow$ rúbrica};
+\node[below=of n0] (n1) {Diversidad no puntuable: titulación, sector, proyecto, entregable y estilo};
+\draw[-{Latex},thick] (n0) -- (n1);
+\node[below=of n1] (n2) {Seis variantes: género $\times$ edad; cualificación constante};
+\draw[-{Latex},thick] (n1) -- (n2);
+\node[below=of n2] (n3) {Señales explícitas en cabecera + señales indirectas en el cuerpo};
+\draw[-{Latex},thick] (n2) -- (n3);
+\end{tikzpicture}
+\caption[Construcción de CVs emparejados y variación controlada]{Construcción de CVs emparejados y variación controlada.}\label{fig:cv}\end{figure}
+
+
+\subsection{Prueba de cambio de formato}
+Además del texto principal, se crea una versión de prueba con cuatro órdenes no utilizados en desarrollo, nuevos títulos de secciones y dos sustituciones de formulación. Se mantiene la cualificación y la etiqueta de cada perfil. Esta condición, denominada formato no visto, mide sensibilidad a cambios moderados de presentación. No incorpora un nuevo idioma, documentos escaneados, errores de extracción ni un vocabulario profesional completamente diferente. Por tanto, se evita denominarla validación externa.
+
+\section{Escenarios de entrenamiento y referencia de evaluación}
+La tabla~\ref{tab:probabilidades} fija las probabilidades del mecanismo de sesgo. La retención se decide con un uniforme $u_r$ por CV: se incluye si $u_r<r_g$. La corrupción utiliza otro uniforme independiente $u_c$ y cambia únicamente positivos de $y^*=1$ a $\tilde y=0$ cuando $u_c<c_g$. No se convierten negativos en positivos. Las probabilidades son parámetros artificiales de estrés; no proceden de estadísticas de discriminación.
+
+\begin{table}[htbp]\centering\small
+\caption{Parámetros de sesgo por intersección. H: hombre; M: mujer.}\label{tab:probabilidades}
+\begin{tabular}{lrrrrrr}\toprule
+Grupo & H 24--34&H 38--48&H 52--62&M 24--34&M 38--48&M 52--62\\\midrule
+Retención $r_g$&1,00&0,90&0,65&0,70&0,50&0,25\\
+Corrupción $c_g$&0,05&0,15&0,40&0,20&0,35&0,60\\\bottomrule
+\end{tabular}\end{table}
+
+El escenario control conserva todas las observaciones y etiquetas. Representación aplica solo retención; etiquetado aplica solo corrupción; combinado aplica ambas. El quinto escenario, control de tamaño, toma tantos CVs como el combinado, distribuidos casi uniformemente entre doce celdas de grupo y clase verdadera, con una diferencia máxima de una observación. Sus etiquetas son correctas. Este control ayuda a separar cantidad total y composición, pero no iguala exactamente la cobertura de perfiles profesionales: no identifica de forma perfecta un efecto causal puro de representación.
+
+La validación y la prueba permanecen completas, equilibradas y etiquetadas con $y^*$. Esta referencia limpia es una ventaja deliberada del estudio sintético. Una organización con etiquetas históricas dudosas no dispone automáticamente de ella; necesitaría una muestra revisada y un criterio profesional defendible. Seleccionar hiperparámetros contra etiquetas limpias puede producir estimaciones más favorables que seleccionarlos contra decisiones históricas sesgadas.
+
+\section{Separación de datos y ajuste de los modelos}
+Se utilizan semillas 11, 22, 33, 44 y 55; la semilla de generación es 20261013 más la semilla de réplica. En cada corpus, el 60\% de perfiles se asigna a entrenamiento, el 20\% a validación y el 20\% a prueba, estratificando por $y^*$. Antes de retener CVs hay 7.200 documentos de entrenamiento, 2.400 de validación y 2.400 de prueba. Todas las variantes del mismo perfil permanecen en la misma partición; también su versión de formato alternativo. No se utiliza la prueba para escoger C, el tratamiento o el umbral.
+
+Los textos se representan mediante TF--IDF de unigramas y bigramas, frecuencia mínima de dos documentos, máximo de 14.000 características, frecuencia sublineal y normalización L2. Se normalizan acentos y mayúsculas, conservando números y tokens de un carácter. El vocabulario y los pesos IDF se aprenden exclusivamente en entrenamiento y se reutilizan en validación y prueba. Cada representación textual y escenario ajusta su propio vectorizador. Los métodos que comparten representación y documentos reutilizan esa matriz, evitando diferencias accidentales.
+
+Se entrenan regresión logística (LR), con \texttt{liblinear}, y SVM lineal (SVM), con formulación primal. Ambos utilizan regularización L2, hasta 10.000 iteraciones y tolerancia $10^{-5}$ \cite{sklearnapi}. Se prueban $C\in\{0{,}1,1,10\}$, seleccionando mayor F1 de validación; ante empate se conserva el menor C. Los avisos de convergencia en los ajustes principales se tratan como errores. El umbral principal es margen cero, equivalente a probabilidad 0,5 en LR; el margen SVM no se interpreta como probabilidad calibrada.
+
+Estas familias permiten inspeccionar pesos y aportaciones léxicas con un coste moderado. No se entrenan redes neuronales, modelos generativos ni representaciones preentrenadas. El trabajo estudia mecanismos de aprendizaje supervisado textual, no el comportamiento de todos los sistemas comerciales de reclutamiento.
+
+\section{Mitigación por componentes y auditoría parcial}
+Se comparan seis tratamientos. El original utiliza todo el texto y $\tilde y$. La reponderación mantiene texto y etiquetas, pero asigna
+\begin{equation}
+ w(g,y)=\frac{n_g n_y}{n\,n_{g,y}},
+\end{equation}
+donde las frecuencias se calculan solo en entrenamiento y respecto a la etiqueta utilizada por ese tratamiento. Los pesos tienen media uno. Se exige que ninguna celda esté vacía. Este procedimiento reduce asociación entre grupo y etiqueta \cite{kamiran2012}, pero no identifica qué observaciones están mal etiquetadas ni restaura automáticamente el tamaño de los grupos.
+
+La supresión de cabecera elimina la primera línea completa. La limpieza completa añade reglas textuales que neutralizan la flexión de género y retiran el año de finalización en ambos formatos. No consulta etiquetas ni metadatos para transformar un CV. Sin embargo, conoce todas las señales insertadas por el generador: constituye un caso favorable de limpieza exhaustiva y no un anonimizador general de CVs reales.
+
+El quinto tratamiento combina limpieza y reponderación. El sexto añade reparación de etiquetas: se selecciona al azar el 30\% de los perfiles de entrenamiento, 360 por réplica, sin examinar errores ni pertenencia demográfica para elegirlos. Para las variantes retenidas de esos perfiles, se sustituye $\tilde y$ por $y^*$. Después se recalculan los pesos y se entrena con el texto limpio. El coste expresado en perfiles no equivale necesariamente al 30\% exacto de documentos retenidos. Esta intervención simula acceso a una auditoría perfecta en la muestra elegida; no se llevó a cabo una revisión humana ni se midieron desacuerdos entre evaluadores.
+
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=3mm, every node/.style={draw=blue!40!black,rounded corners,fill=blue!4,text width=11.9cm,align=center,font=\small,inner sep=5pt}]
+\node (n0) {Cabecera: retirar nombre, género y edad};
+\node[below=of n0] (n1) {Cuerpo: neutralizar flexión y eliminar año de finalización};
+\draw[-{Latex},thick] (n0) -- (n1);
+\node[below=of n1] (n2) {Etiquetas: reparar el 30\% de perfiles auditados de entrenamiento};
+\draw[-{Latex},thick] (n1) -- (n2);
+\node[below=of n2] (n3) {Recalcular pesos grupo--etiqueta y ajustar el modelo};
+\draw[-{Latex},thick] (n2) -- (n3);
+\end{tikzpicture}
+\caption[Componentes del tratamiento con auditoría]{Componentes del tratamiento con auditoría. La reparación usa la rúbrica conocida y constituye un supuesto favorable.}\label{fig:mitigacion}\end{figure}
+
+
+La comparación por componentes permite distinguir qué aporta retirar identificadores, neutralizar señales indirectas, modificar la distribución de pesos y corregir información supervisora. Si la limpieza hace idénticas las seis entradas de un perfil, un clasificador determinista necesariamente produce seis decisiones idénticas. Esta propiedad se verifica, pero no se interpreta como prueba de justicia general. Todos los candidatos de un perfil podrían recibir una decisión errónea común.
+
+\section{Métricas, incertidumbre y pruebas de sensibilidad}
+Se evalúan F1, precisión, sensibilidad, exactitud, área ROC y precisión media. La métrica principal de disparidad es $\Delta_{TPR}=\max_gTPR_g-\min_gTPR_g$ sobre los seis grupos. Se acompañan brecha de FPR, diferencia máxima de tasas de selección y el máximo entre brechas de TPR y FPR. La comparación de grupos se hace contra $y^*$, nunca contra las etiquetas corrompidas.
+
+Las pruebas emparejadas calculan la proporción de decisiones distintas al cambiar género con la misma edad (tres pares por perfil), y al cambiar intervalo de edad manteniendo género (seis pares). Sus denominadores son pares, no candidatos independientes. AUC describe ordenación de puntuaciones; no prueba ausencia de discriminación en un umbral operativo. La F1 depende de la prevalencia y no mide directamente coste económico o daño social.
+
+Se presentan medias y desviaciones estándar de cinco corpus independientes. Las diferencias entre tratamientos se calculan primero dentro de cada réplica. Los intervalos percentiles del 95\% remuestrean con reemplazo las cinco diferencias completas, 10.000 veces. Son intervalos bootstrap exploratorios con pocas unidades; no se atribuye precisión poblacional a miles de CVs correlacionados ni se declara significación tras múltiples comparaciones. La inferencia queda condicionada al generador y a las cinco realizaciones disponibles.
+
+Tres pruebas complementarias examinan robustez. Primero, se evalúan los formatos reservados con los modelos ya ajustados. Segundo, LR con $C=1$ se reentrena con multiplicadores de corrupción 0, 0,5, 1 y 1,5, manteniendo retención y números aleatorios. Tercero, se reentrenan limpieza con pesos y auditoría con pesos bajo umbrales de rúbrica 5 y 7 y bajo seis requisitos con peso igual y umbral 4. En este último análisis se conserva la partición original, sin reestratificar por la rúbrica alternativa. No son nuevos resultados del mismo clasificador: cada condición requiere un ajuste.
+
+Como diagnóstico adicional, se exploran 61 umbrales entre $-3$ y $3$ en validación para LR original y con auditoría. Se elige el de mayor F1, favoreciendo el más próximo a cero en empate, y se evalúa una sola vez en prueba. No se buscan umbrales específicos por grupo. El protocolo, las versiones, las salidas individuales y los controles de integridad se conservan en el material reproducible citado en la bibliografía \cite{repositorio2026}.
+\chapter{Resultados experimentales y explicación}
+\label{cap:resultados}
+\section{Ejecución efectiva y composición del corpus}
+Se completaron cinco corpus independientes: 10.000 perfiles profesionales y 60.000 CVs principales. Sus variantes de formato se conservan por separado dentro de cada registro. Se realizaron 800 ajustes, de los cuales 750 corresponden a selección entre tres valores de C y 50 a sensibilidad. Se seleccionaron 250 modelos principales y se evaluaron en dos formatos, obteniendo 500 filas de métricas y 1.200.000 predicciones individuales. El número de documentos no se interpreta como tamaño de muestra independiente.
+
+La comprobación separada recalculó F1, AUC y brechas a partir de las predicciones; verificó separación de perfiles, consistencia de la rúbrica, selección de C y corrección restringida a perfiles auditados. La ejecución y las versiones están documentadas en el recurso reproducible \cite{repositorio2026}. Esta verificación comprueba consistencia interna; no valida que la rúbrica represente productividad ni que las plantillas sean representativas de CVs reales.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={CVs},xlabel={Edad},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ybar,ymin=0]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(24.00000,370.00000) (25.00000,392.00000) (26.00000,308.00000) (27.00000,400.00000) (28.00000,346.00000) (29.00000,366.00000) (30.00000,380.00000) (31.00000,350.00000) (32.00000,392.00000) (33.00000,342.00000) (34.00000,354.00000) (38.00000,348.00000) (39.00000,368.00000) (40.00000,374.00000) (41.00000,388.00000) (42.00000,354.00000) (43.00000,384.00000) (44.00000,394.00000) (45.00000,336.00000) (46.00000,372.00000) (47.00000,358.00000) (48.00000,324.00000) (52.00000,368.00000) (53.00000,366.00000) (54.00000,364.00000) (55.00000,378.00000) (56.00000,380.00000) (57.00000,366.00000) (58.00000,382.00000) (59.00000,292.00000) (60.00000,378.00000) (61.00000,402.00000) (62.00000,324.00000)};
+\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={Perfiles},xlabel={Palabras},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ybar,ymin=0]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(149.00000,24.00000) (153.00000,94.00000) (157.00000,237.00000) (161.00000,279.00000) (165.00000,286.00000) (169.00000,279.00000) (173.00000,294.00000) (177.00000,233.00000) (181.00000,162.00000) (185.00000,79.00000) (189.00000,24.00000) (193.00000,9.00000)};
+\end{axis}\end{tikzpicture}
+\caption[Diversidad observable de la réplica 11: edades y longitud textual de un CV por perfil]{Diversidad observable de la réplica 11: edades y longitud textual de un CV por perfil. El número de palabras no mide por sí solo realismo lingüístico.}\label{fig:diversidad}\end{figure}
+
+La figura~\ref{fig:diversidad} muestra variabilidad efectiva, no solo posibilidades teóricas del generador. Las edades cubren intervalos y las longitudes varían por perfil. Persisten estructuras repetidas y un vocabulario deliberadamente reducido. La figura~\ref{fig:datos} permite comprobar que el mecanismo de retención produce desigualdad de tamaño y que la corrupción actúa sobre positivos de referencia. La segunda proporción usa como denominador positivos retenidos, no todos los CVs.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={CVs retenidos},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ybar,ymin=0,xtick={0,1,2,3,4,5},xticklabels={H1,H2,H3,M1,M2,M3}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,1200.00000) (1.00000,1080.20000) (2.00000,783.00000) (3.00000,836.80000) (4.00000,611.20000) (5.00000,302.40000)};
+\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={Positivos corrompidos},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ybar,ymin=0,ymax=1,xtick={0,1,2,3,4,5},xticklabels={H1,H2,H3,M1,M2,M3}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.05433) (1.00000,0.14728) (2.00000,0.37839) (3.00000,0.20507) (4.00000,0.33311) (5.00000,0.59091)};
+\end{axis}\end{tikzpicture}
+\caption[Composición efectiva del entrenamiento combinado: número retenido y proporción de positivos convertidos en negativos]{Composición efectiva del entrenamiento combinado: número retenido y proporción de positivos convertidos en negativos. Promedios sobre cinco corpus.}\label{fig:datos}\end{figure}
+
+\section{Efectos del escenario antes de mitigar}
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={F1},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1,xtick={0,1,2,3,4},xticklabels={C,N,R,E,RE}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.96638) (1.00000,0.95999) (2.00000,0.96098) (3.00000,0.77201) (4.00000,0.78303)};
+\addlegendentry{LR}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.98642) (1.00000,0.98312) (2.00000,0.98059) (3.00000,0.78102) (4.00000,0.79688)};
+\addlegendentry{SVM}
+\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={$\Delta_{TPR}$},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1,xtick={0,1,2,3,4},xticklabels={C,N,R,E,RE}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.01400) (1.00000,0.01600) (2.00000,0.01500) (3.00000,0.56100) (4.00000,0.52600)};
+\addlegendentry{LR}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.00500) (1.00000,0.00600) (2.00000,0.01200) (3.00000,0.55800) (4.00000,0.51200)};
+\addlegendentry{SVM}
+\end{axis}\end{tikzpicture}
+\caption[Modelos originales]{Modelos originales. C: control; N: control de tamaño; R: representación; E: etiquetado; RE: combinado. Cada punto promedia cinco réplicas.}\label{fig:escenarios}\end{figure}
+
+En el control, LR obtuvo F1 de 0,966 y SVM de 0,986. En el combinado, las cifras fueron 0,783 y 0,797. La comparación debe leerse junto a las brechas: acertar globalmente no informa de cómo se distribuyen los rechazos erróneos. El control de tamaño mantiene la cantidad del combinado con etiquetas correctas y composición aproximadamente equilibrada. Por ello, una diferencia respecto a ese control no puede atribuirse simplemente a disponer de menos documentos.
+
+Representación y etiquetado son mecanismos distintos. Retener menos candidaturas de un grupo reduce su presencia, pero no convierte por sí mismo competencias válidas en decisiones negativas. La corrupción sí introduce una asociación entre señales demográficas y rechazo de perfiles que cumplen la rúbrica. En el combinado ambos mecanismos interactúan; no es correcto sumar aritméticamente las brechas de los escenarios aislados para predecir su efecto conjunto.
+
+\section{Comparación de mitigaciones y distribución de errores}
+\begin{table}[htbp]\centering\scriptsize\caption{Escenario combinado: media y desviación estándar de cinco corpus. AUC se expresa como media.}\label{tab:principal}\begin{tabular}{llrrr}\toprule Modelo & Tratamiento & F1 & Brecha TPR & AUC\\\midrule LR & Original & 0,783 $\pm$ 0,024 & 0,526 $\pm$ 0,028 & 0,965\\
+LR & Reponderación & 0,817 $\pm$ 0,018 & 0,269 $\pm$ 0,068 & 0,977\\
+LR & Sin cabecera & 0,799 $\pm$ 0,019 & 0,502 $\pm$ 0,026 & 0,973\\
+LR & Limpieza & 0,845 $\pm$ 0,025 & 0,000 $\pm$ 0,000 & 0,983\\
+LR & Limpieza + pesos & 0,855 $\pm$ 0,026 & 0,000 $\pm$ 0,000 & 0,984\\
+LR & Limpieza + pesos + auditoría & 0,910 $\pm$ 0,011 & 0,000 $\pm$ 0,000 & 0,989\\
+SVM & Original & 0,797 $\pm$ 0,020 & 0,512 $\pm$ 0,040 & 0,964\\
+SVM & Reponderación & 0,835 $\pm$ 0,020 & 0,246 $\pm$ 0,061 & 0,976\\
+SVM & Sin cabecera & 0,814 $\pm$ 0,019 & 0,498 $\pm$ 0,028 & 0,971\\
+SVM & Limpieza & 0,862 $\pm$ 0,014 & 0,000 $\pm$ 0,000 & 0,987\\
+SVM & Limpieza + pesos & 0,858 $\pm$ 0,037 & 0,000 $\pm$ 0,000 & 0,980\\
+SVM & Limpieza + pesos + auditoría & 0,921 $\pm$ 0,010 & 0,000 $\pm$ 0,000 & 0,988\\\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={F1},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1,xtick={0,1,2,3,4,5},xticklabels={M0,M1,M2,M3,M4,M5}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.78303) (1.00000,0.81725) (2.00000,0.79865) (3.00000,0.84515) (4.00000,0.85537) (5.00000,0.91020)};
+\addlegendentry{LR}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.79688) (1.00000,0.83478) (2.00000,0.81429) (3.00000,0.86221) (4.00000,0.85794) (5.00000,0.92093)};
+\addlegendentry{SVM}
+\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={$\Delta_{TPR}$},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1,xtick={0,1,2,3,4,5},xticklabels={M0,M1,M2,M3,M4,M5}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.52600) (1.00000,0.26900) (2.00000,0.50200) (3.00000,0.00000) (4.00000,0.00000) (5.00000,0.00000)};
+\addlegendentry{LR}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.51200) (1.00000,0.24600) (2.00000,0.49800) (3.00000,0.00000) (4.00000,0.00000) (5.00000,0.00000)};
+\addlegendentry{SVM}
+\end{axis}\end{tikzpicture}
+\caption[Comparación principal en el escenario combinado]{Comparación principal en el escenario combinado. Medias de cinco corpus. M0: original; M1: reponderación; M2: sin cabecera; M3: limpieza; M4: limpieza y pesos; M5: limpieza, pesos y auditoría. Las líneas unen categorías solo como ayuda visual.}\label{fig:comparacion}\end{figure}
+
+El tratamiento completo con auditoría produjo F1 de 0,910 en LR y 0,921 en SVM, frente a 0,783 y 0,797 sin tratamiento. Las diferencias respecto al original fueron 0,127 y 0,124. Estas comparaciones describen este protocolo; no demuestran que corregir el 30\% de etiquetas siempre produzca la misma mejora.
+
+Retirar solo la cabecera dejó una brecha TPR de 0,502 en LR. El resultado ilustra por qué una transformación superficial puede ser insuficiente: el modelo aún recibe una flexión de género y fechas asociadas con edad. La limpieza completa retira las señales que el propio generador conoce. Cuando las seis variantes quedan idénticas, la brecha es necesariamente cero sobre un conjunto que replica la misma cualificación en cada grupo. Este cero debe explicarse como invariancia por construcción y no como descubrimiento de una equidad universal.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[x=.58cm,y=.44cm]
+\fill[blue!71!white] (0,0) rectangle (1,-1);
+\node[font=\tiny,text=white] at (0.5,-0.5) {0.89};
+\fill[blue!63!white] (1,0) rectangle (2,-1);
+\node[font=\tiny,text=white] at (1.5,-0.5) {0.80};
+\fill[blue!44!white] (2,0) rectangle (3,-1);
+\node[font=\tiny,text=black] at (2.5,-0.5) {0.56};
+\fill[blue!57!white] (3,0) rectangle (4,-1);
+\node[font=\tiny,text=white] at (3.5,-0.5) {0.72};
+\fill[blue!47!white] (4,0) rectangle (5,-1);
+\node[font=\tiny,text=black] at (4.5,-0.5) {0.59};
+\fill[blue!29!white] (5,0) rectangle (6,-1);
+\node[font=\tiny,text=black] at (5.5,-0.5) {0.36};
+\node[anchor=east,font=\scriptsize] at (0,-0.5) {M0};
+\fill[blue!65!white] (0,-1) rectangle (1,-2);
+\node[font=\tiny,text=white] at (0.5,-1.5) {0.82};
+\fill[blue!61!white] (1,-1) rectangle (2,-2);
+\node[font=\tiny,text=white] at (1.5,-1.5) {0.76};
+\fill[blue!53!white] (2,-1) rectangle (3,-2);
+\node[font=\tiny,text=white] at (2.5,-1.5) {0.67};
+\fill[blue!59!white] (3,-1) rectangle (4,-2);
+\node[font=\tiny,text=white] at (3.5,-1.5) {0.74};
+\fill[blue!52!white] (4,-1) rectangle (5,-2);
+\node[font=\tiny,text=white] at (4.5,-1.5) {0.66};
+\fill[blue!44!white] (5,-1) rectangle (6,-2);
+\node[font=\tiny,text=black] at (5.5,-1.5) {0.55};
+\node[anchor=east,font=\scriptsize] at (0,-1.5) {M1};
+\fill[blue!71!white] (0,-2) rectangle (1,-3);
+\node[font=\tiny,text=white] at (0.5,-2.5) {0.90};
+\fill[blue!64!white] (1,-2) rectangle (2,-3);
+\node[font=\tiny,text=white] at (1.5,-2.5) {0.81};
+\fill[blue!46!white] (2,-2) rectangle (3,-3);
+\node[font=\tiny,text=black] at (2.5,-2.5) {0.59};
+\fill[blue!58!white] (3,-2) rectangle (4,-3);
+\node[font=\tiny,text=white] at (3.5,-2.5) {0.73};
+\fill[blue!49!white] (4,-2) rectangle (5,-3);
+\node[font=\tiny,text=black] at (4.5,-2.5) {0.62};
+\fill[blue!31!white] (5,-2) rectangle (6,-3);
+\node[font=\tiny,text=black] at (5.5,-2.5) {0.39};
+\node[anchor=east,font=\scriptsize] at (0,-2.5) {M2};
+\fill[blue!59!white] (0,-3) rectangle (1,-4);
+\node[font=\tiny,text=white] at (0.5,-3.5) {0.74};
+\fill[blue!59!white] (1,-3) rectangle (2,-4);
+\node[font=\tiny,text=white] at (1.5,-3.5) {0.74};
+\fill[blue!59!white] (2,-3) rectangle (3,-4);
+\node[font=\tiny,text=white] at (2.5,-3.5) {0.74};
+\fill[blue!59!white] (3,-3) rectangle (4,-4);
+\node[font=\tiny,text=white] at (3.5,-3.5) {0.74};
+\fill[blue!59!white] (4,-3) rectangle (5,-4);
+\node[font=\tiny,text=white] at (4.5,-3.5) {0.74};
+\fill[blue!59!white] (5,-3) rectangle (6,-4);
+\node[font=\tiny,text=white] at (5.5,-3.5) {0.74};
+\node[anchor=east,font=\scriptsize] at (0,-3.5) {M3};
+\fill[blue!60!white] (0,-4) rectangle (1,-5);
+\node[font=\tiny,text=white] at (0.5,-4.5) {0.76};
+\fill[blue!60!white] (1,-4) rectangle (2,-5);
+\node[font=\tiny,text=white] at (1.5,-4.5) {0.76};
+\fill[blue!60!white] (2,-4) rectangle (3,-5);
+\node[font=\tiny,text=white] at (2.5,-4.5) {0.76};
+\fill[blue!60!white] (3,-4) rectangle (4,-5);
+\node[font=\tiny,text=white] at (3.5,-4.5) {0.76};
+\fill[blue!60!white] (4,-4) rectangle (5,-5);
+\node[font=\tiny,text=white] at (4.5,-4.5) {0.76};
+\fill[blue!60!white] (5,-4) rectangle (6,-5);
+\node[font=\tiny,text=white] at (5.5,-4.5) {0.76};
+\node[anchor=east,font=\scriptsize] at (0,-4.5) {M4};
+\fill[blue!67!white] (0,-5) rectangle (1,-6);
+\node[font=\tiny,text=white] at (0.5,-5.5) {0.85};
+\fill[blue!67!white] (1,-5) rectangle (2,-6);
+\node[font=\tiny,text=white] at (1.5,-5.5) {0.85};
+\fill[blue!67!white] (2,-5) rectangle (3,-6);
+\node[font=\tiny,text=white] at (2.5,-5.5) {0.85};
+\fill[blue!67!white] (3,-5) rectangle (4,-6);
+\node[font=\tiny,text=white] at (3.5,-5.5) {0.85};
+\fill[blue!67!white] (4,-5) rectangle (5,-6);
+\node[font=\tiny,text=white] at (4.5,-5.5) {0.85};
+\fill[blue!67!white] (5,-5) rectangle (6,-6);
+\node[font=\tiny,text=white] at (5.5,-5.5) {0.85};
+\node[anchor=east,font=\scriptsize] at (0,-5.5) {M5};
+\node[font=\scriptsize] at (0.5,.4) {H1};
+\node[font=\scriptsize] at (1.5,.4) {H2};
+\node[font=\scriptsize] at (2.5,.4) {H3};
+\node[font=\scriptsize] at (3.5,.4) {M1};
+\node[font=\scriptsize] at (4.5,.4) {M2};
+\node[font=\scriptsize] at (5.5,.4) {M3};
+\node at (3,1.2) {LR};\end{tikzpicture}\hspace{4mm}\begin{tikzpicture}[x=.58cm,y=.44cm]
+\fill[blue!72!white] (0,0) rectangle (1,-1);
+\node[font=\tiny,text=white] at (0.5,-0.5) {0.90};
+\fill[blue!65!white] (1,0) rectangle (2,-1);
+\node[font=\tiny,text=white] at (1.5,-0.5) {0.81};
+\fill[blue!46!white] (2,0) rectangle (3,-1);
+\node[font=\tiny,text=black] at (2.5,-0.5) {0.58};
+\fill[blue!60!white] (3,0) rectangle (4,-1);
+\node[font=\tiny,text=white] at (3.5,-0.5) {0.76};
+\fill[blue!49!white] (4,0) rectangle (5,-1);
+\node[font=\tiny,text=black] at (4.5,-0.5) {0.62};
+\fill[blue!31!white] (5,0) rectangle (6,-1);
+\node[font=\tiny,text=black] at (5.5,-0.5) {0.39};
+\node[anchor=east,font=\scriptsize] at (0,-0.5) {M0};
+\fill[blue!66!white] (0,-1) rectangle (1,-2);
+\node[font=\tiny,text=white] at (0.5,-1.5) {0.84};
+\fill[blue!63!white] (1,-1) rectangle (2,-2);
+\node[font=\tiny,text=white] at (1.5,-1.5) {0.79};
+\fill[blue!56!white] (2,-1) rectangle (3,-2);
+\node[font=\tiny,text=white] at (2.5,-1.5) {0.70};
+\fill[blue!60!white] (3,-1) rectangle (4,-2);
+\node[font=\tiny,text=white] at (3.5,-1.5) {0.76};
+\fill[blue!56!white] (4,-1) rectangle (5,-2);
+\node[font=\tiny,text=white] at (4.5,-1.5) {0.70};
+\fill[blue!47!white] (5,-1) rectangle (6,-2);
+\node[font=\tiny,text=black] at (5.5,-1.5) {0.59};
+\node[anchor=east,font=\scriptsize] at (0,-1.5) {M1};
+\fill[blue!72!white] (0,-2) rectangle (1,-3);
+\node[font=\tiny,text=white] at (0.5,-2.5) {0.91};
+\fill[blue!66!white] (1,-2) rectangle (2,-3);
+\node[font=\tiny,text=white] at (1.5,-2.5) {0.83};
+\fill[blue!49!white] (2,-2) rectangle (3,-3);
+\node[font=\tiny,text=black] at (2.5,-2.5) {0.62};
+\fill[blue!60!white] (3,-2) rectangle (4,-3);
+\node[font=\tiny,text=white] at (3.5,-2.5) {0.76};
+\fill[blue!53!white] (4,-2) rectangle (5,-3);
+\node[font=\tiny,text=white] at (4.5,-2.5) {0.66};
+\fill[blue!32!white] (5,-2) rectangle (6,-3);
+\node[font=\tiny,text=black] at (5.5,-2.5) {0.41};
+\node[anchor=east,font=\scriptsize] at (0,-2.5) {M2};
+\fill[blue!61!white] (0,-3) rectangle (1,-4);
+\node[font=\tiny,text=white] at (0.5,-3.5) {0.77};
+\fill[blue!61!white] (1,-3) rectangle (2,-4);
+\node[font=\tiny,text=white] at (1.5,-3.5) {0.77};
+\fill[blue!61!white] (2,-3) rectangle (3,-4);
+\node[font=\tiny,text=white] at (2.5,-3.5) {0.77};
+\fill[blue!61!white] (3,-3) rectangle (4,-4);
+\node[font=\tiny,text=white] at (3.5,-3.5) {0.77};
+\fill[blue!61!white] (4,-3) rectangle (5,-4);
+\node[font=\tiny,text=white] at (4.5,-3.5) {0.77};
+\fill[blue!61!white] (5,-3) rectangle (6,-4);
+\node[font=\tiny,text=white] at (5.5,-3.5) {0.77};
+\node[anchor=east,font=\scriptsize] at (0,-3.5) {M3};
+\fill[blue!61!white] (0,-4) rectangle (1,-5);
+\node[font=\tiny,text=white] at (0.5,-4.5) {0.77};
+\fill[blue!61!white] (1,-4) rectangle (2,-5);
+\node[font=\tiny,text=white] at (1.5,-4.5) {0.77};
+\fill[blue!61!white] (2,-4) rectangle (3,-5);
+\node[font=\tiny,text=white] at (2.5,-4.5) {0.77};
+\fill[blue!61!white] (3,-4) rectangle (4,-5);
+\node[font=\tiny,text=white] at (3.5,-4.5) {0.77};
+\fill[blue!61!white] (4,-4) rectangle (5,-5);
+\node[font=\tiny,text=white] at (4.5,-4.5) {0.77};
+\fill[blue!61!white] (5,-4) rectangle (6,-5);
+\node[font=\tiny,text=white] at (5.5,-4.5) {0.77};
+\node[anchor=east,font=\scriptsize] at (0,-4.5) {M4};
+\fill[blue!69!white] (0,-5) rectangle (1,-6);
+\node[font=\tiny,text=white] at (0.5,-5.5) {0.87};
+\fill[blue!69!white] (1,-5) rectangle (2,-6);
+\node[font=\tiny,text=white] at (1.5,-5.5) {0.87};
+\fill[blue!69!white] (2,-5) rectangle (3,-6);
+\node[font=\tiny,text=white] at (2.5,-5.5) {0.87};
+\fill[blue!69!white] (3,-5) rectangle (4,-6);
+\node[font=\tiny,text=white] at (3.5,-5.5) {0.87};
+\fill[blue!69!white] (4,-5) rectangle (5,-6);
+\node[font=\tiny,text=white] at (4.5,-5.5) {0.87};
+\fill[blue!69!white] (5,-5) rectangle (6,-6);
+\node[font=\tiny,text=white] at (5.5,-5.5) {0.87};
+\node[anchor=east,font=\scriptsize] at (0,-5.5) {M5};
+\node[font=\scriptsize] at (0.5,.4) {H1};
+\node[font=\scriptsize] at (1.5,.4) {H2};
+\node[font=\scriptsize] at (2.5,.4) {H3};
+\node[font=\scriptsize] at (3.5,.4) {M1};
+\node[font=\scriptsize] at (4.5,.4) {M2};
+\node[font=\scriptsize] at (5.5,.4) {M3};
+\node at (3,1.2) {SVM};\end{tikzpicture}
+\caption[Sensibilidad (TPR) por tratamiento e intersección en el escenario combinado]{Sensibilidad (TPR) por tratamiento e intersección en el escenario combinado. H/M: género; 1, 2 y 3: intervalos de edad de menor a mayor. Filas M0--M5 como en la figura anterior. Medias de cinco corpus.}\label{fig:grupos}\end{figure}
+
+Cada celda de la figura~\ref{fig:grupos} representa la proporción de positivos de referencia recuperados. Por ejemplo, TPR 0,70 significa que se descarta erróneamente el 30\% de quienes cumplen la rúbrica de ese grupo. Leer las seis celdas evita que promedios agregados por género oculten combinaciones de género y edad. Los tamaños de prueba y la prevalencia son iguales por construcción; esa simetría favorece interpretar las diferencias, pero no refleja necesariamente un proceso de selección real.
+
+La reponderación interviene sobre la asociación de grupo y etiqueta observada. Si la etiqueta ya contiene errores, modificar pesos puede redistribuir su influencia sin conocer su verdad. La comparación entre limpieza con pesos y limpieza con pesos y auditoría aísla el efecto incremental de sustituir una parte de esas etiquetas en el mismo texto y sobre los mismos perfiles. No se atribuye toda la ganancia del tratamiento completo a un único componente. En SVM, añadir pesos a la limpieza reduce ligeramente la F1 media de 0,862 a 0,858, mientras que incorporar la auditoría la eleva a 0,921. En LR, la secuencia es 0,845, 0,855 y 0,910. Por tanto, combinar técnicas no garantiza una mejora monótona; en este diseño la reparación de etiquetas aporta la ganancia incremental más clara.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.8\textwidth,height=4.5cm,scale only axis=false,ylabel={F1},xlabel={$\Delta_{TPR}$},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},only marks,ymin=0,ymax=1]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.52600,0.78303)};
+\addlegendentry{M0}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.26900,0.81725)};
+\addlegendentry{M1}
+\addplot+[thick,mark=*,mark size=1.4pt,color=violet] coordinates {(0.50200,0.79865)};
+\addlegendentry{M2}
+\addplot+[thick,mark=*,mark size=1.4pt,color=cyan!60!black] coordinates {(0.00000,0.84515)};
+\addlegendentry{M3}
+\addplot+[thick,mark=*,mark size=1.4pt,color=green!45!black] coordinates {(0.00000,0.85537)};
+\addlegendentry{M4}
+\addplot+[thick,mark=*,mark size=1.4pt,color=blue!65!black] coordinates {(0.00000,0.91020)};
+\addlegendentry{M5}
+\end{axis}\end{tikzpicture}
+\caption[Rendimiento y brecha de oportunidad de LR, escenario combinado]{Rendimiento y brecha de oportunidad de LR, escenario combinado. Los puntos pueden solaparse cuando la brecha es cero; las cifras exactas se incluyen en la tabla principal.}\label{fig:compromiso}\end{figure}
+
+La figura~\ref{fig:compromiso} debe leerse con dos criterios simultáneos. Una menor brecha es deseable, pero puede acompañarse de rechazo generalizado; una F1 alta puede esconder errores desigualmente repartidos. El punto de auditoría combina una referencia de evaluación limpia con reparación perfecta de una muestra de entrenamiento. Es una estimación bajo acceso favorable a información, no una promesa de mejora gratuita en producción.
+
+\section{Invariancia emparejada, ordenación y umbral}
+En LR original, el cambio de decisión entre variantes de género fue 0,111 y entre variantes de edad 0,125. Se trata de proporciones de pares, manteniendo cualificación y redacción no demográfica. Las versiones limpias producen decisiones idénticas dentro de cada perfil; pueden seguir cometiendo errores sobre la cualificación común. Esta distinción entre invariancia e identificación correcta es esencial para interpretar la mitigación.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={TPR},xlabel={FPR},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},xmin=0,xmax=1,ymin=0,ymax=1,mark=none]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.00000) (0.00083,0.14000) (0.00250,0.32167) (0.00417,0.32667) (0.00500,0.38917) (0.00667,0.42500) (0.00833,0.43917) (0.01000,0.46750) (0.01167,0.52583) (0.01333,0.55333) (0.01417,0.61417) (0.01583,0.65000) (0.01750,0.66500) (0.01917,0.67083) (0.02333,0.69083) (0.02500,0.69250) (0.02583,0.70417) (0.02750,0.72750) (0.02917,0.74917) (0.03083,0.75000) (0.03250,0.75250) (0.03417,0.75667) (0.03500,0.77250) (0.03750,0.78917) (0.03917,0.79500) (0.04083,0.80167) (0.04500,0.80583) (0.04750,0.80750) (0.04833,0.82167) (0.05083,0.82667) (0.05333,0.83333) (0.05667,0.83417) (0.05917,0.85083) (0.06167,0.85333) (0.06250,0.85667) (0.06417,0.86333) (0.06583,0.87417) (0.06917,0.87583) (0.07167,0.87750) (0.07333,0.88000) (0.07417,0.88750) (0.07583,0.89250) (0.07750,0.89417) (0.08000,0.89750) (0.08167,0.90000) (0.08417,0.90250) (0.08667,0.90583) (0.09083,0.90833) (0.09500,0.91500) (0.09667,0.91667) (0.10083,0.91750) (0.10500,0.92000) (0.10750,0.92167) (0.10917,0.92833) (0.11167,0.93250) (0.11333,0.93583) (0.11583,0.93667) (0.11917,0.93833) (0.12333,0.94250) (0.12750,0.94417) (0.12917,0.94583) (0.13083,0.94833) (0.13417,0.94917) (0.13583,0.95083) (0.13917,0.95333) (0.14083,0.95500) (0.14500,0.95750) (0.15250,0.96000) (0.16250,0.96167) (0.16583,0.96583) (0.17167,0.96833) (0.17667,0.97000) (0.18083,0.97167) (0.18333,0.97333) (0.18750,0.97417) (0.19750,0.97583) (0.20750,0.97750) (0.21083,0.97917) (0.21750,0.98083) (0.22500,0.98333) (0.23000,0.98417) (0.24750,0.98583) (0.28500,0.98750) (0.28667,0.99000) (0.32500,0.99167) (0.33250,0.99417) (0.34417,0.99500) (0.38333,0.99667) (0.44333,0.99833) (1.00000,1.00000)};
+\addlegendentry{M0}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.00000) (0.00000,0.40417) (0.00167,0.43500) (0.00250,0.57750) (0.00417,0.59750) (0.00500,0.65917) (0.00750,0.69833) (0.00833,0.72250) (0.01000,0.72500) (0.01083,0.73417) (0.01167,0.77000) (0.01333,0.78000) (0.01417,0.79333) (0.01583,0.79833) (0.01667,0.80417) (0.01917,0.81750) (0.02000,0.82417) (0.02250,0.82500) (0.02333,0.82583) (0.02500,0.84583) (0.02667,0.84667) (0.02750,0.85250) (0.02917,0.85333) (0.03167,0.85667) (0.03333,0.85833) (0.03417,0.86250) (0.03583,0.86583) (0.03667,0.86667) (0.03750,0.87083) (0.03917,0.87333) (0.04000,0.87667) (0.04250,0.88333) (0.04333,0.88583) (0.04500,0.88833) (0.04583,0.89583) (0.04750,0.89750) (0.04833,0.89833) (0.04917,0.90083) (0.05167,0.90417) (0.05250,0.90833) (0.05500,0.91000) (0.05583,0.91333) (0.05833,0.91500) (0.06083,0.91750) (0.06333,0.91917) (0.06417,0.92000) (0.06500,0.92583) (0.06667,0.92667) (0.06750,0.92833) (0.07000,0.92917) (0.07167,0.93167) (0.07500,0.93250) (0.07750,0.93583) (0.08000,0.93750) (0.08167,0.93917) (0.08333,0.94083) (0.08917,0.94167) (0.09083,0.94417) (0.09417,0.94500) (0.09583,0.94667) (0.09750,0.94833) (0.09833,0.95167) (0.10167,0.95250) (0.10333,0.95417) (0.10417,0.95583) (0.11000,0.95750) (0.11083,0.96250) (0.11583,0.96333) (0.12000,0.96500) (0.12500,0.96583) (0.13000,0.96750) (0.13667,0.96917) (0.13833,0.97000) (0.14583,0.97250) (0.15833,0.97417) (0.15917,0.97667) (0.16250,0.97833) (0.17167,0.98083) (0.18583,0.98250) (0.18750,0.98500) (0.19917,0.98583) (0.20083,0.98667) (0.21167,0.99083) (0.22000,0.99167) (0.23750,0.99417) (0.24917,0.99500) (0.26333,0.99667) (0.28000,0.99750) (0.31083,0.99917) (1.00000,1.00000)};
+\addlegendentry{M2}
+\addplot+[thick,mark=*,mark size=1.4pt,color=violet] coordinates {(0.00000,0.00000) (0.00000,0.00500) (0.00000,0.65000) (0.00500,0.65000) (0.00500,0.80000) (0.01000,0.80000) (0.01000,0.91500) (0.01500,0.91500) (0.01500,0.93000) (0.02000,0.93000) (0.02000,0.93500) (0.05000,0.93500) (0.05000,0.94500) (0.06000,0.94500) (0.06000,0.96000) (0.07000,0.96000) (0.07000,0.97000) (0.08000,0.97000) (0.08000,0.97500) (0.09000,0.97500) (0.09000,0.98000) (0.11000,0.98000) (0.11000,0.98500) (0.12000,0.98500) (0.12000,0.99500) (0.20000,0.99500) (0.20000,1.00000) (1.00000,1.00000)};
+\addlegendentry{M5}
+\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={Precisión},xlabel={Recall},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},xmin=0,xmax=1,ymin=0,ymax=1,mark=none]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(1.00000,0.50000) (1.00000,0.50548) (1.00000,0.51129) (1.00000,0.51724) (1.00000,0.52333) (1.00000,0.52957) (1.00000,0.53595) (1.00000,0.54250) (1.00000,0.54920) (1.00000,0.55607) (1.00000,0.56312) (1.00000,0.57034) (1.00000,0.57776) (1.00000,0.58537) (1.00000,0.59318) (1.00000,0.60120) (1.00000,0.60945) (1.00000,0.61792) (1.00000,0.62663) (1.00000,0.63559) (1.00000,0.64481) (1.00000,0.65431) (1.00000,0.66408) (1.00000,0.67416) (1.00000,0.68454) (0.99833,0.69409) (0.99833,0.70512) (0.99833,0.71651) (0.99667,0.72705) (0.99583,0.73857) (0.99417,0.74937) (0.99083,0.75974) (0.99000,0.77243) (0.98750,0.78425) (0.98667,0.79784) (0.98417,0.81057) (0.97917,0.82168) (0.97583,0.83464) (0.97000,0.84593) (0.96167,0.85545) (0.95667,0.86838) (0.94833,0.87876) (0.93833,0.88801) (0.92500,0.89444) (0.91583,0.90527) (0.90333,0.91323) (0.89167,0.92241) (0.87583,0.92763) (0.85833,0.93128) (0.84083,0.93513) (0.82583,0.94202) (0.80750,0.94537) (0.79250,0.95291) (0.77333,0.95572) (0.75417,0.95869) (0.73583,0.96292) (0.71500,0.96404) (0.69417,0.96524) (0.67667,0.97129) (0.65750,0.97528) (0.63667,0.97573) (0.61500,0.97619) (0.59333,0.97668) (0.57167,0.97721) (0.55000,0.97778) (0.52750,0.97685) (0.50667,0.97907) (0.48417,0.97811) (0.46333,0.98060) (0.44083,0.97963) (0.42083,0.98441) (0.39917,0.98560) (0.37750,0.98693) (0.35500,0.98611) (0.33333,0.98765) (0.31333,0.99471) (0.29167,0.99715) (0.26917,0.99691) (0.24667,0.99663) (0.22417,0.99630) (0.20167,0.99588) (0.17917,0.99537) (0.15667,0.99471) (0.13500,1.00000) (0.11250,1.00000) (0.09000,1.00000) (0.06750,1.00000) (0.04500,1.00000) (0.02250,1.00000) (0.00000,1.00000)};
+\addlegendentry{M0}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(1.00000,0.50000) (1.00000,0.50548) (1.00000,0.51129) (1.00000,0.51724) (1.00000,0.52333) (1.00000,0.52957) (1.00000,0.53595) (1.00000,0.54250) (1.00000,0.54920) (1.00000,0.55607) (1.00000,0.56312) (1.00000,0.57034) (1.00000,0.57776) (1.00000,0.58537) (1.00000,0.59318) (1.00000,0.60120) (1.00000,0.60945) (1.00000,0.61792) (1.00000,0.62663) (1.00000,0.63559) (1.00000,0.64481) (1.00000,0.65431) (1.00000,0.66408) (1.00000,0.67416) (1.00000,0.68454) (1.00000,0.69525) (1.00000,0.70630) (1.00000,0.71770) (1.00000,0.72948) (1.00000,0.74166) (0.99917,0.75314) (0.99833,0.76550) (0.99833,0.77893) (0.99583,0.79087) (0.99417,0.80391) (0.99250,0.81743) (0.98833,0.82937) (0.98333,0.84105) (0.97917,0.85392) (0.97250,0.86509) (0.96917,0.87973) (0.96333,0.89266) (0.95417,0.90300) (0.94333,0.91217) (0.93417,0.92339) (0.92417,0.93429) (0.91167,0.94310) (0.89750,0.95057) (0.88083,0.95570) (0.86417,0.96108) (0.84917,0.96863) (0.83083,0.97268) (0.81333,0.97796) (0.79417,0.98146) (0.77417,0.98411) (0.75333,0.98582) (0.73167,0.98652) (0.71083,0.98841) (0.69000,0.99043) (0.66750,0.99011) (0.64750,0.99234) (0.62500,0.99206) (0.60333,0.99314) (0.58167,0.99430) (0.56000,0.99556) (0.53750,0.99537) (0.51500,0.99517) (0.49333,0.99663) (0.47083,0.99647) (0.44833,0.99630) (0.42667,0.99805) (0.40417,0.99794) (0.38250,1.00000) (0.36000,1.00000) (0.33750,1.00000) (0.31500,1.00000) (0.29250,1.00000) (0.27000,1.00000) (0.24750,1.00000) (0.22500,1.00000) (0.20250,1.00000) (0.18000,1.00000) (0.15750,1.00000) (0.13500,1.00000) (0.11250,1.00000) (0.09000,1.00000) (0.06750,1.00000) (0.04500,1.00000) (0.02250,1.00000) (0.00000,1.00000)};
+\addlegendentry{M2}
+\addplot+[thick,mark=*,mark size=1.4pt,color=violet] coordinates {(1.00000,0.50000) (1.00000,0.50505) (1.00000,0.51020) (1.00000,0.51680) (1.00000,0.52219) (1.00000,0.52910) (1.00000,0.53476) (1.00000,0.54201) (1.00000,0.54795) (1.00000,0.55556) (1.00000,0.56180) (1.00000,0.56980) (1.00000,0.57637) (1.00000,0.58480) (1.00000,0.59172) (1.00000,0.60060) (1.00000,0.60790) (1.00000,0.61728) (1.00000,0.62500) (1.00000,0.63492) (1.00000,0.64309) (1.00000,0.65359) (1.00000,0.66225) (1.00000,0.67340) (1.00000,0.68259) (1.00000,0.69444) (1.00000,0.70423) (1.00000,0.71685) (1.00000,0.72727) (1.00000,0.74074) (1.00000,0.75188) (1.00000,0.76628) (1.00000,0.77821) (1.00000,0.79365) (1.00000,0.80645) (1.00000,0.82305) (0.99500,0.83264) (0.99500,0.85043) (0.99500,0.86522) (0.99500,0.88444) (0.98500,0.89140) (0.98000,0.90741) (0.97500,0.91981) (0.96500,0.93237) (0.95500,0.94089) (0.94000,0.94949) (0.93500,0.96392) (0.93000,0.98413) (0.91500,0.98919) (0.89000,0.98889) (0.87000,0.98864) (0.84500,0.98830) (0.82500,0.98802) (0.80000,0.98765) (0.78500,0.99367) (0.76000,0.99346) (0.74000,0.99329) (0.71500,0.99306) (0.69500,0.99286) (0.67000,0.99259) (0.65000,0.99237) (0.63000,1.00000) (0.61000,1.00000) (0.58500,1.00000) (0.56500,1.00000) (0.54000,1.00000) (0.52000,1.00000) (0.49500,1.00000) (0.47500,1.00000) (0.45000,1.00000) (0.43000,1.00000) (0.40500,1.00000) (0.38500,1.00000) (0.36000,1.00000) (0.34000,1.00000) (0.31500,1.00000) (0.29500,1.00000) (0.27000,1.00000) (0.25000,1.00000) (0.22500,1.00000) (0.20500,1.00000) (0.18000,1.00000) (0.16000,1.00000) (0.13500,1.00000) (0.11500,1.00000) (0.09000,1.00000) (0.07000,1.00000) (0.04500,1.00000) (0.02500,1.00000) (0.00000,1.00000)};
+\addlegendentry{M5}
+\end{axis}\end{tikzpicture}
+\caption[Curvas ROC y precisión--recall de LR, semilla 11, escenario combinado]{Curvas ROC y precisión--recall de LR, semilla 11, escenario combinado. Réplica ilustrativa, no agregación de cinco ejecuciones. Se muestran hasta 90 puntos por curva para aligerar el documento.}\label{fig:curvas}\end{figure}
+
+Las curvas de la réplica 11 ilustran la capacidad de ordenar candidaturas a distintos umbrales. No sustituyen la tabla agregada ni garantizan paridad: una curva global puede ser buena y coexistir con un umbral perjudicial para un subgrupo. La precisión--recall utiliza la prevalencia artificial del 50\%; su precisión no se extrapola a un proceso donde solo una fracción pequeña cumple los requisitos.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={F1},xlabel={Umbral},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(-3.00000,0.80567) (-2.90000,0.81096) (-2.80000,0.81637) (-2.70000,0.82168) (-2.60000,0.82799) (-2.50000,0.83341) (-2.40000,0.83856) (-2.30000,0.84284) (-2.20000,0.84719) (-2.10000,0.85468) (-2.00000,0.85943) (-1.90000,0.86424) (-1.80000,0.86896) (-1.70000,0.87253) (-1.60000,0.87583) (-1.50000,0.87941) (-1.40000,0.88221) (-1.30000,0.88467) (-1.20000,0.88521) (-1.10000,0.88423) (-1.00000,0.88234) (-0.90000,0.87913) (-0.80000,0.87616) (-0.70000,0.87138) (-0.60000,0.86365) (-0.50000,0.85431) (-0.40000,0.84284) (-0.30000,0.82992) (-0.20000,0.81185) (-0.10000,0.79611) (0.00000,0.77895) (0.10000,0.76052) (0.20000,0.73930) (0.30000,0.71681) (0.40000,0.69127) (0.50000,0.66362) (0.60000,0.63771) (0.70000,0.61253) (0.80000,0.58718) (0.90000,0.55617) (1.00000,0.53065) (1.10000,0.50355) (1.20000,0.47541) (1.30000,0.44797) (1.40000,0.41999) (1.50000,0.39313) (1.60000,0.36853) (1.70000,0.34703) (1.80000,0.32308) (1.90000,0.29936) (2.00000,0.27676) (2.10000,0.25736) (2.20000,0.24161) (2.30000,0.22695) (2.40000,0.21185) (2.50000,0.19505) (2.60000,0.18026) (2.70000,0.16544) (2.80000,0.15411) (2.90000,0.14176) (3.00000,0.12783)};
+\addlegendentry{M0}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(-3.00000,0.71867) (-2.90000,0.72336) (-2.80000,0.72893) (-2.70000,0.73379) (-2.60000,0.73919) (-2.50000,0.74473) (-2.40000,0.75197) (-2.30000,0.75767) (-2.20000,0.76351) (-2.10000,0.77177) (-2.00000,0.77718) (-1.90000,0.78263) (-1.80000,0.79315) (-1.70000,0.80432) (-1.60000,0.81476) (-1.50000,0.82108) (-1.40000,0.83198) (-1.30000,0.84359) (-1.20000,0.85510) (-1.10000,0.87027) (-1.00000,0.88370) (-0.90000,0.89976) (-0.80000,0.91151) (-0.70000,0.92105) (-0.60000,0.93758) (-0.50000,0.94096) (-0.40000,0.94582) (-0.30000,0.94372) (-0.20000,0.93791) (-0.10000,0.92982) (0.00000,0.90219) (0.10000,0.87441) (0.20000,0.85003) (0.30000,0.81927) (0.40000,0.77973) (0.50000,0.74093) (0.60000,0.69544) (0.70000,0.65766) (0.80000,0.62337) (0.90000,0.58497) (1.00000,0.53539) (1.10000,0.48389) (1.20000,0.43786) (1.30000,0.40312) (1.40000,0.35273) (1.50000,0.32509) (1.60000,0.28733) (1.70000,0.25940) (1.80000,0.23075) (1.90000,0.19240) (2.00000,0.16311) (2.10000,0.12372) (2.20000,0.08597) (2.30000,0.06002) (2.40000,0.04488) (2.50000,0.03332) (2.60000,0.02556) (2.70000,0.01385) (2.80000,0.00398) (2.90000,0.00000) (3.00000,0.00000)};
+\addlegendentry{M5}
+\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={$\Delta_{TPR}$},xlabel={Umbral},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(-3.00000,0.02300) (-2.90000,0.02600) (-2.80000,0.03100) (-2.70000,0.03800) (-2.60000,0.04400) (-2.50000,0.05000) (-2.40000,0.05800) (-2.30000,0.07400) (-2.20000,0.09000) (-2.10000,0.10000) (-2.00000,0.11900) (-1.90000,0.13800) (-1.80000,0.15300) (-1.70000,0.16600) (-1.60000,0.17800) (-1.50000,0.19900) (-1.40000,0.22000) (-1.30000,0.25100) (-1.20000,0.27100) (-1.10000,0.30300) (-1.00000,0.32700) (-0.90000,0.35500) (-0.80000,0.38000) (-0.70000,0.41100) (-0.60000,0.43300) (-0.50000,0.45800) (-0.40000,0.48700) (-0.30000,0.50800) (-0.20000,0.53000) (-0.10000,0.54600) (0.00000,0.55900) (0.10000,0.56900) (0.20000,0.55800) (0.30000,0.55800) (0.40000,0.54600) (0.50000,0.54500) (0.60000,0.54700) (0.70000,0.53000) (0.80000,0.50600) (0.90000,0.49000) (1.00000,0.48400) (1.10000,0.45600) (1.20000,0.43900) (1.30000,0.42900) (1.40000,0.40800) (1.50000,0.38500) (1.60000,0.36700) (1.70000,0.34500) (1.80000,0.31800) (1.90000,0.29400) (2.00000,0.27200) (2.10000,0.25500) (2.20000,0.24800) (2.30000,0.23100) (2.40000,0.21900) (2.50000,0.20700) (2.60000,0.19600) (2.70000,0.18100) (2.80000,0.17700) (2.90000,0.16900) (3.00000,0.15500)};
+\addlegendentry{M0}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(-3.00000,0.00000) (-2.90000,0.00000) (-2.80000,0.00000) (-2.70000,0.00000) (-2.60000,0.00000) (-2.50000,0.00000) (-2.40000,0.00000) (-2.30000,0.00000) (-2.20000,0.00000) (-2.10000,0.00000) (-2.00000,0.00000) (-1.90000,0.00000) (-1.80000,0.00000) (-1.70000,0.00000) (-1.60000,0.00000) (-1.50000,0.00000) (-1.40000,0.00000) (-1.30000,0.00000) (-1.20000,0.00000) (-1.10000,0.00000) (-1.00000,0.00000) (-0.90000,0.00000) (-0.80000,0.00000) (-0.70000,0.00000) (-0.60000,0.00000) (-0.50000,0.00000) (-0.40000,0.00000) (-0.30000,0.00000) (-0.20000,0.00000) (-0.10000,0.00000) (0.00000,0.00000) (0.10000,0.00000) (0.20000,0.00000) (0.30000,0.00000) (0.40000,0.00000) (0.50000,0.00000) (0.60000,0.00000) (0.70000,0.00000) (0.80000,0.00000) (0.90000,0.00000) (1.00000,0.00000) (1.10000,0.00000) (1.20000,0.00000) (1.30000,0.00000) (1.40000,0.00000) (1.50000,0.00000) (1.60000,0.00000) (1.70000,0.00000) (1.80000,0.00000) (1.90000,0.00000) (2.00000,0.00000) (2.10000,0.00000) (2.20000,0.00000) (2.30000,0.00000) (2.40000,0.00000) (2.50000,0.00000) (2.60000,0.00000) (2.70000,0.00000) (2.80000,0.00000) (2.90000,0.00000) (3.00000,0.00000)};
+\addlegendentry{M5}
+\end{axis}\end{tikzpicture}
+\caption[Diagnóstico de umbral en validación: medias de F1 y brecha TPR para LR]{Diagnóstico de umbral en validación: medias de F1 y brecha TPR para LR. La selección del umbral no utiliza la prueba.}\label{fig:umbrales}\end{figure}
+
+Cambiar el umbral modifica el compromiso entre falsos negativos y falsos positivos. Los perfiles con puntuación próxima al corte son especialmente sensibles. La prueba auxiliar seleccionó el umbral solo en validación: F1 de prueba media 0,897 para LR original y 0,939 para la versión con auditoría. Estas cifras no reemplazan el análisis principal con corte cero. Escoger un umbral tras observar la prueba habría convertido la evaluación en otra etapa de ajuste.
+
+\section{Cambio de formato y sensibilidad del diseño}
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={F1},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1,xtick={0,1,2,3,4,5},xticklabels={M0,M1,M2,M3,M4,M5}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.78303) (1.00000,0.81725) (2.00000,0.79865) (3.00000,0.84515) (4.00000,0.85537) (5.00000,0.91020)};
+\addlegendentry{LR habitual}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.86245) (1.00000,0.89152) (2.00000,0.88626) (3.00000,0.91254) (4.00000,0.91467) (5.00000,0.93764)};
+\addlegendentry{LR nuevo}
+\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.1cm,scale only axis=false,ylabel={F1},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1,xtick={0,1,2,3,4,5},xticklabels={M0,M1,M2,M3,M4,M5}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.79688) (1.00000,0.83478) (2.00000,0.81429) (3.00000,0.86221) (4.00000,0.85794) (5.00000,0.92093)};
+\addlegendentry{SVM habitual}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.86768) (1.00000,0.89840) (2.00000,0.89011) (3.00000,0.92274) (4.00000,0.91023) (5.00000,0.93178)};
+\addlegendentry{SVM nuevo}
+\end{axis}\end{tikzpicture}
+\caption[Prueba de formato reservado]{Prueba de formato reservado. Se evalúan los mismos perfiles y modelos; solo cambia la presentación del texto. No se reajusta el clasificador.}\label{fig:formatos}\end{figure}
+
+Con formato reservado, la F1 de LR original fue 0,862 y la del tratamiento con auditoría 0,938. La diferencia entre los dos formatos cuantifica sensibilidad a las modificaciones implementadas. Una estabilidad alta solo confirma tolerancia a ese cambio moderado: permanecen términos de competencias, reglas y estructura semántica próximos a los del entrenamiento.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.8\textwidth,height=4.1cm,scale only axis=false,ylabel={},xlabel={Multiplicador de corrupción},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.93617) (0.50000,0.90669) (1.00000,0.77007) (1.50000,0.57272)};
+\addlegendentry{F1}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.01500) (0.50000,0.20000) (1.00000,0.58200) (1.50000,0.82400)};
+\addlegendentry{Brecha TPR}
+\end{axis}\end{tikzpicture}
+\caption[Sensibilidad a la intensidad de corrupción: LR original, C fijo en 1 y retención constante]{Sensibilidad a la intensidad de corrupción: LR original, C fijo en 1 y retención constante. Cada punto requiere reentrenar; no es una modificación posterior de predicciones.}\label{fig:intensidad}\end{figure}
+
+La prueba de intensidad mantiene constantes los CVs retenidos y aumenta la probabilidad de convertir positivos en negativos. Es una intervención sobre la supervisión, no sobre la capacidad profesional. La curva permite comprobar si las conclusiones dependen de una sola configuración de corrupción. Las pendientes no constituyen una ley extrapolable a tasas de discriminación reales; la familia de modelos, la regularización y la selección sintética de casos condicionan su forma.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.8\textwidth,height=4.1cm,scale only axis=false,ylabel={F1},xlabel={},tick label style={font=\scriptsize},label style={font=\small},legend style={font=\tiny,at={(0.5,-0.27)},anchor=north,legend columns=2},grid=major,grid style={gray!15},ymin=0,ymax=1,xtick={0,1,2},xticklabels={Umbral 5,Umbral 7,Pesos iguales}]
+\addplot+[thick,mark=*,mark size=1.4pt,color=red!65!black] coordinates {(0.00000,0.91886) (1.00000,0.45933) (2.00000,0.92094)};
+\addlegendentry{M4}
+\addplot+[thick,mark=*,mark size=1.4pt,color=orange!80!black] coordinates {(0.00000,0.95001) (1.00000,0.58216) (2.00000,0.96358)};
+\addlegendentry{M5}
+\end{axis}\end{tikzpicture}
+\caption[Robustez frente a tres rúbricas alternativas]{Robustez frente a tres rúbricas alternativas. LR con C=1, reentrenado en cada condición. La prevalencia de positivos cambia respecto al experimento principal.}\label{fig:rubricas}\end{figure}
+
+Las rúbricas alternativas modifican qué significa ser un candidato positivo. La comparación reentrena los modelos y evita evaluar predicciones antiguas contra un objetivo nuevo como si fueran modelos optimizados para él. Una F1 distinta puede reflejar tanto dificultad como cambio de prevalencia. El análisis no resuelve la validez normativa de la rúbrica: muestra cuánto dependen las conclusiones de una decisión profesional simplificada.
+
+\section{Explicación de las predicciones e incertidumbre}
+En un clasificador lineal, el margen se descompone exactamente como $s(x)=b+\sum_j w_jx_j$. El coeficiente global $w_j$ informa del signo aprendido; la contribución local es $w_jx_j$ y depende de que el término aparezca y de su peso TF--IDF. Los términos correlacionados pueden repartirse influencia. Ninguna de estas cantidades es una explicación causal de la idoneidad de una persona.
+Como ejemplo verificable, las variantes 348 y 353 del perfil 58 tienen etiqueta positiva. LR original les asigna márgenes 3,043 y 1,956: ambas pasan el corte, aunque reciben puntuaciones distintas. Tras limpieza, pesos y auditoría, ambas obtienen 1,034. En el primer caso original, el margen se reconstruye como $-1{,}067+4{,}110=3{,}043$; en la versión auditada, como $0{,}391+0{,}643=1{,}034$. Las sumas se muestran redondeadas; la comprobación utiliza precisión completa. Este ejemplo no se seleccionó por cambiar la decisión y permite observar que igualdad de decisiones e igualdad de puntuaciones son propiedades distintas.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.5cm,xbar,xlabel={Coeficiente},ytick={0,1,2,3,4,5,6},yticklabels={datos con,python sql,analisis sql,sql,con python,analisis de,python},tick label style={font=\tiny},title={M0},title style={font=\small}]\addplot[fill=blue!50] coordinates {(7.90224,0.00000) (8.06559,1.00000) (8.22791,2.00000) (9.13546,3.00000) (9.94852,4.00000) (9.94852,5.00000) (13.77402,6.00000)};\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=4.5cm,xbar,xlabel={Coeficiente},ytick={0,1,2,3,4,5,6},yticklabels={consultas,python sql,datos con,sql,analisis de,con python,python},tick label style={font=\tiny},title={M5},title style={font=\small}]\addplot[fill=blue!50] coordinates {(3.81806,0.00000) (3.94128,1.00000) (4.54162,2.00000) (4.73496,3.00000) (4.80394,4.00000) (4.80394,5.00000) (6.79736,6.00000)};\end{axis}\end{tikzpicture}
+\caption[Siete coeficientes de mayor magnitud entre los registrados, LR, semilla 11]{Siete coeficientes de mayor magnitud entre los registrados, LR, semilla 11. El signo indica asociación aprendida; la magnitud depende de TF--IDF y la regularización y no representa efecto causal.}\label{fig:coeficientes}\end{figure}
+
+La inspección compara vocabulario profesional y posibles señales ajenas a la rúbrica. Eliminar un término del gráfico no prueba que toda información demográfica haya desaparecido: esa garantía solo existe aquí porque se conocen y verifican todas las señales del generador. El material reproducible conserva los modelos representativos y aportaciones locales, de forma que una predicción puede reconstruirse incluyendo intercepto y todos sus términos, sin depender de una explicación textual generada a posteriori.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=3.8cm,ylabel={Cambio F1},xtick={0,1,2},xticklabels={M2,M4,M5},tick label style={font=\scriptsize},error bars/y dir=both,error bars/y explicit]\addplot+[only marks,error bars/.cd,y dir=both,y explicit] coordinates {(0,0.015618) += (0,0.007192) -= (0,0.006456) (1,0.072337) += (0,0.008330) -= (0,0.008840) (2,0.127168) += (0,0.011689) -= (0,0.011513) };\addplot[gray,dashed,domain=-.3:2.3] {0};\end{axis}\end{tikzpicture}\begin{tikzpicture}\begin{axis}[width=.46\textwidth,height=3.8cm,ylabel={Cambio brecha},xtick={0,1,2},xticklabels={M2,M4,M5},tick label style={font=\scriptsize},error bars/y dir=both,error bars/y explicit]\addplot+[only marks,error bars/.cd,y dir=both,y explicit] coordinates {(0,-0.024000) += (0,0.027000) -= (0,0.032000) (1,-0.526000) += (0,0.021000) -= (0,0.021000) (2,-0.526000) += (0,0.021000) -= (0,0.021000) };\addplot[gray,dashed,domain=-.3:2.3] {0};\end{axis}\end{tikzpicture}
+\caption[Diferencias pareadas respecto al original en LR]{Diferencias pareadas respecto al original en LR. Intervalos bootstrap percentiles del 95\%, remuestreando cinco corpus completos 10.000 veces. Alcance exploratorio; no representan una población laboral.}\label{fig:intervalos}\end{figure}
+
+Los intervalos de la figura~\ref{fig:intervalos} usan diferencias pareadas entre corpus. Para LR, la mejora de F1 del tratamiento completo frente al original es 0,127, con intervalo exploratorio [0,116; 0,139]. En cambio, el cambio de brecha al retirar solo la cabecera es $-0,024$, con intervalo [$-0,056$; 0,003], que incluye cero. Este contraste desaconseja presentar la supresión de cabecera como una reducción robusta de disparidad en estas cinco réplicas. Con solo cinco réplicas, son sensibles a sus valores y tienen carácter exploratorio. Un intervalo degenerado en cero para una métrica estructural no demuestra ausencia de incertidumbre sobre CVs reales. La principal incertidumbre externa procede precisamente de lo que el generador no representa.
+\chapter{Discusión}
+\section{Qué mecanismo explica los resultados}
+El experimento muestra por qué no debe confundirse capacidad para reproducir decisiones históricas con capacidad para reconocer cualificación. El modelo minimiza un error respecto a la etiqueta que recibe, y la corrupción introduce información demográfica predictiva de esa etiqueta. Bajo ese objetivo, utilizarla puede ser estadísticamente útil aunque resulte injustificado respecto a la oferta. La decisión técnica de qué se aprende antecede a la discusión de qué algoritmo se utiliza.
+
+Los escenarios controlados permiten atribuciones acotadas. El contraste de etiquetas modifica decisiones manteniendo perfiles; el de representación modifica presencia, y el combinado aplica ambos. Las comparaciones pareadas de mitigación mantienen prueba, números aleatorios y configuración. No obstante, el control de tamaño no iguala toda la composición profesional y la validación limpia facilita seleccionar modelos. La evidencia respalda explicaciones internas del banco de pruebas, no una identificación causal del mercado laboral.
+
+La limpieza completa y la reparación de etiquetas resuelven problemas distintos. La primera elimina las vías demográficas diseñadas; la segunda mejora la información supervisora disponible. Por ello, una mejora de equidad no implica necesariamente mejora de F1, ni una mejora de F1 demuestra que haya desaparecido toda desigualdad relevante. El análisis conjunto de errores, pares y sensibilidad evita reducir el resultado a una única cifra favorable.
+
+\section{Relación con la literatura y aportación}
+El énfasis en definir objetivo y evidencia de validación coincide con la crítica de Raghavan et al.\ \cite{raghavan2020}. Las señales fuera de la cabecera conectan con el problema general de información demográfica residual en representaciones textuales \cite{dearteaga2019}. No se comparan porcentajes directamente con esos estudios porque cambian datos, tarea y población. El trabajo tampoco replica el mecanismo de recuperación mediante representaciones preentrenadas de Wilson y Caliskan \cite{wilson2024}.
+
+La referencia profesional independiente y la separación entre etiquetas verdaderas y observadas responden al problema señalado por las auditorías de mitigación \cite{sariola2026}: una evaluación puede parecer satisfactoria si utiliza como verdad las mismas decisiones sesgadas que intenta corregir. Aquí esa independencia se obtiene artificialmente mediante una rúbrica. Su ventaja es la trazabilidad; su coste es simplificar qué significa ser un candidato adecuado.
+
+La contribución no consiste en una nueva técnica matemática. Consiste en combinar un generador español documentado, intervenciones controladas, pruebas de formato reservado, auditoría parcial simulada y conservación de predicciones. La variedad añadida reduce la dependencia de una sola plantilla, aunque sigue lejos de la diversidad de un corpus recopilado con consentimiento o de una evaluación profesional con múltiples revisores \cite{saldivar2025}.
+
+\section{Amenazas a la validez}
+\textbf{Validez de constructo.} La adecuación a la oferta es una suma de requisitos, no desempeño observado. Un CV que no menciona una competencia se trata como si no dispusiera de ella. La experiencia se simplifica a años y el nivel de inglés es una categoría declarada. La rúbrica alternativa explora sensibilidad, pero no sustituye validación con especialistas.
+
+\textbf{Validez interna.} El generador y el limpiador comparten conocimiento de las señales demográficas. La auditoría obtiene etiquetas perfectas, la validación es limpia y los grupos de prueba son simétricos. Estas condiciones facilitan identificar mecanismos y favorecen las intervenciones. Las comprobaciones de separación por perfil reducen fugas directas, pero todas las particiones comparten la misma familia de plantillas y vocabulario.
+
+\textbf{Validez estadística.} Cinco corpus permiten observar variación, pero son pocas unidades para estimar colas de incertidumbre. Los CVs de un perfil están correlacionados. Las métricas se exploran en numerosas condiciones sin un contraste confirmatorio corregido por multiplicidad; se evita declarar superioridad universal o significación basada en pruebas repetidas. La incertidumbre de diseño excede lo capturado por las barras de variabilidad.
+
+\textbf{Validez externa.} Solo se consideran dos modelos léxicos, una oferta, español, género binario y tres intervalos de edad. No hay discapacidad, nacionalidad, origen étnico, identidad no binaria, selección por cupos, ranking competitivo, extracción de PDF ni interacción humana real. Tampoco se analizan vacantes múltiples ni consecuencias posteriores de la contratación. El formato reservado sigue siendo próximo al entrenamiento.
+
+\section{Recomendaciones técnicas, éticas y organizativas}
+Una aplicación posterior debería comenzar por acordar una rúbrica de puesto con especialistas y documentar su justificación. Después, conviene revisar una muestra estratificada de casos, medir desacuerdo entre evaluadores y registrar por qué cambia una etiqueta. La fracción del 30\% utilizada aquí es un parámetro experimental; no constituye una recomendación presupuestaria óptima. Habría que estudiar curvas de coste, calidad y cobertura de auditoría.
+
+La evaluación debería conservar una muestra temporal y organizativamente separada, informar tamaños y errores por intersección y revisar candidaturas cercanas al umbral. La supervisión humana necesita criterios y capacidad de corregir decisiones, no solo una pantalla que muestre la puntuación. No se ha medido en este TFM que estas prácticas produzcan mejores decisiones reales; se proponen como condiciones de evaluación posterior.
+
+La documentación debe diferenciar datos empleados para decidir de datos necesarios para auditar. Una eventual recogida de atributos personales requeriría finalidad, base jurídica y salvaguardias apropiadas; no se justifica simplemente por resultar útil para una métrica. El marco europeo de alto riesgo en empleo exige analizar finalidad, responsabilidades y requisitos aplicables \cite{aiact2024,omnibus2026}. Ningún valor de paridad estadística certifica por sí solo cumplimiento normativo ni legitimidad del criterio profesional.
+
+\chapter{Conclusiones y líneas futuras}
+\section{Respuesta a las preguntas de investigación}
+\textbf{PI1.} El banco de pruebas permite separar representación y corrupción de etiquetas. Las diferencias observadas dependen del mecanismo introducido; reducir el problema a tamaño de muestra oculta el papel de las decisiones históricas. La comparación con un control de tamaño mejora la interpretación, aunque no iguala toda la cobertura profesional.
+
+\textbf{PI2.} LR y SVM se comparan con representación, particiones y selección de hiperparámetros comunes. Sus valores cuantitativos difieren, pero cambiar de familia lineal no elimina automáticamente asociaciones demográficas presentes en entrenamiento. El alcance de esta conclusión no incluye arquitecturas que no se han evaluado.
+
+\textbf{PI3.} Las variantes emparejadas permiten detectar cambios de decisión sin alterar cualificación. Retirar la cabecera no garantiza retirar todas las señales. La limpieza exhaustiva produce invariancia porque elimina todas las variaciones demográficas definidas; se distingue esta garantía interna de cualquier afirmación sobre CVs reales.
+
+\textbf{PI4.} Las intervenciones actúan sobre texto, pesos y etiquetas. Su utilidad se juzga conjuntamente mediante rendimiento, errores por grupo y sensibilidad. La auditoría parcial se interpreta bajo acceso perfecto a la rúbrica en los perfiles seleccionados. Esta condición debe conservarse explícita al comunicar la mejora, sin atribuirla a una revisión humana no realizada.
+
+\section{Aportaciones y continuidad}
+Se entrega un experimento ejecutado y verificable, con corpus más variados, cinco escenarios, seis tratamientos, dos modelos y análisis complementarios. Las gráficas y tablas derivan de las predicciones guardadas. La memoria ofrece ejemplos concretos, reglas de generación, información disponible para cada intervención y límites de interpretación. El material experimental se cita como recurso bibliográfico versionado \cite{repositorio2026}.
+
+Las siguientes extensiones prioritarias serían validar la rúbrica con varios especialistas, introducir errores y desacuerdos de auditoría, estudiar su presupuesto y ampliar diversidad demográfica y biográfica. Una segunda fase debería incorporar datos externos obtenidos lícitamente, particiones temporales, representaciones semánticas y ranking de candidaturas. La comparación entre modelos más complejos debería mantener el mismo rigor de trazabilidad; aumentar complejidad sin mejorar la referencia de evaluación no resuelve el problema central.
+
+\begin{thebibliography}{99}
+\small
+\setlength{\itemsep}{0.45em}
+
+\bibitem{raghavan2020} Raghavan, M., Barocas, S., Kleinberg, J. y Levy, K. (2020). \textit{Mitigating Bias in Algorithmic Hiring: Evaluating Claims and Practices}. Proceedings of FAT* 2020. \url{https://doi.org/10.1145/3351095.3372828}. Versión abierta: \url{https://arxiv.org/abs/1906.09208}.
+
+\bibitem{manning2008} Manning, C. D., Raghavan, P. y Schütze, H. (2008). \textit{Introduction to Information Retrieval}. Cambridge University Press. Sección sobre ponderación TF--IDF. \url{https://nlp.stanford.edu/IR-book/html/htmledition/tf-idf-weighting-1.html}.
+
+\bibitem{reimers2019} Reimers, N. y Gurevych, I. (2019). Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks. \textit{Proceedings of EMNLP-IJCNLP}, 3982--3992. \url{https://doi.org/10.18653/v1/D19-1410}.
+
+\bibitem{suresh2021} Suresh, H. y Guttag, J. V. (2021). \textit{A Framework for Understanding Sources of Harm throughout the Machine Learning Life Cycle}. Versión revisada de arXiv:1901.10002, 1 de diciembre de 2021; trabajo asociado a EAAMO 2021. \url{https://arxiv.org/abs/1901.10002}.
+
+\bibitem{dearteaga2019} De-Arteaga, M., Romanov, A., Wallach, H., Chayes, J., Borgs, C., Chouldechova, A., Geyik, S., Kenthapadi, K. y Kalai, A. T. (2019). \textit{Bias in Bios: A Case Study of Semantic Representation Bias in a High-Stakes Setting}. Proceedings of FAT* 2019. \url{https://doi.org/10.1145/3287560.3287572}. Versión abierta: \url{https://arxiv.org/abs/1901.09451}.
+
+\bibitem{hardt2016} Hardt, M., Price, E. y Srebro, N. (2016). \textit{Equality of Opportunity in Supervised Learning}. Advances in Neural Information Processing Systems, 29. \url{https://arxiv.org/abs/1610.02413}.
+
+\bibitem{kleinberg2017} Kleinberg, J., Mullainathan, S. y Raghavan, M. (2017). \textit{Inherent Trade-Offs in the Fair Determination of Risk Scores}. Proceedings of ITCS 2017. Preprint de 2016: \url{https://arxiv.org/abs/1609.05807}.
+
+\bibitem{kusner2017} Kusner, M. J., Loftus, J. R., Russell, C. y Silva, R. (2017). \textit{Counterfactual Fairness}. Advances in Neural Information Processing Systems, 30. \url{https://arxiv.org/abs/1703.06856}.
+
+\bibitem{saldivar2025} Saldivar, J., Gatzioura, A. y Castillo, C. (2025). \textit{Synthetic CVs To Build and Test Fairness-Aware Hiring Tools}. Preprint, arXiv:2508.21179. \url{https://arxiv.org/abs/2508.21179}.
+
+\bibitem{kamiran2012} Kamiran, F. y Calders, T. (2012). Data preprocessing techniques for classification without discrimination. \textit{Knowledge and Information Systems}, 33, 1--33. \url{https://doi.org/10.1007/s10115-011-0463-8}.
+
+\bibitem{agarwal2018} Agarwal, A., Beygelzimer, A., Dudík, M., Langford, J. y Wallach, H. (2018). A Reductions Approach to Fair Classification. \textit{Proceedings of Machine Learning Research}, 80, 60--69. \url{https://proceedings.mlr.press/v80/agarwal18a.html}.
+
+\bibitem{gebru2021} Gebru, T., Morgenstern, J., Vecchione, B., Vaughan, J. W., Wallach, H., Daumé III, H. y Crawford, K. (2021). Datasheets for Datasets. \textit{Communications of the ACM}. \url{https://doi.org/10.1145/3458723}. Preprint: \url{https://arxiv.org/abs/1803.09010}.
+
+\bibitem{mitchell2019} Mitchell, M., Wu, S., Zaldivar, A., Barnes, P., Vasserman, L., Hutchinson, B., Spitzer, E., Raji, I. D. y Gebru, T. (2019). \textit{Model Cards for Model Reporting}. Proceedings of FAT* 2019. \url{https://doi.org/10.1145/3287560.3287596}. Versión abierta: \url{https://arxiv.org/abs/1810.03993}.
+
+\bibitem{aiact2024} Parlamento Europeo y Consejo de la Unión Europea (2024). \textit{Reglamento (UE) 2024/1689, de 13 de junio de 2024, por el que se establecen normas armonizadas en materia de inteligencia artificial}. Artículo 6, capítulo III y anexo III. Texto original: \url{https://eur-lex.europa.eu/eli/reg/2024/1689/oj?locale=es}.
+
+\bibitem{comision2026} Comisión Europea (2026). \textit{AI Act}. Shaping Europe's digital future. Información oficial sobre el marco regulatorio y su calendario de aplicación. Consultado el 13 de octubre de 2026. \url{https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai}.
+
+\bibitem{rgpd2016} Parlamento Europeo y Consejo de la Unión Europea (2016). \textit{Reglamento (UE) 2016/679, de 27 de abril de 2016 (Reglamento general de protección de datos)}. Artículos 5, 6, 9 y 22. \url{https://www.boe.es/buscar/doc.php?id=DOUE-L-2016-80807}.
+
+\bibitem{ley152022} Jefatura del Estado (2022). \textit{Ley 15/2022, de 12 de julio, integral para la igualdad de trato y la no discriminación}. Artículos 9 y 23. Texto consolidado consultado el 13 de octubre de 2026. \url{https://www.boe.es/buscar/act.php?id=BOE-A-2022-11589}.
+
+\bibitem{wilson2024} Wilson, K. y Caliskan, A. (2024). \textit{Gender, Race, and Intersectional Bias in Resume Screening via Language Model Retrieval}. Proceedings of AIES 2024. \url{https://doi.org/10.1609/aies.v7i1.31748}. Se ha consultado también la versión de arXiv revisada en agosto de 2026, que incorpora una descripción de erratas: \url{https://arxiv.org/abs/2407.20371v3}.
+
+\bibitem{sariola2026} Sariola, D., Button, P., Culotta, A. y Mattei, N. (2026). The Illusion of Fairness: Auditing Fairness Interventions in Algorithmic Hiring with Audit Studies. \textit{Proceedings of the AAAI Conference on Artificial Intelligence}, 40(46), 39191--39200. \url{https://doi.org/10.1609/aaai.v40i46.41267}.
+
+\bibitem{sklearnapi} Scikit-learn developers (2026). \textit{API reference: TfidfVectorizer, LogisticRegression y LinearSVC}. Documentación oficial, consultada el 13 de octubre de 2026. \url{https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html}; \url{https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html}; \url{https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html}.
+
+\bibitem{repositorio2026} Rajo Vázquez, J. (2026). \textit{Evaluación y mitigación de sesgos en reclutamiento: corpus sintético, protocolo y resultados reproducibles} (versión 2.0.0) [Software y datos]. GitHub. \url{https://github.com/jordanrajo-svg/tfm-sesgos-reclutamiento}. Consulta: 13 de octubre de 2026. Incluye configuración, dependencias, generador, entrenamiento, predicciones, verificador y figuras. Reproducción desde la raíz del repositorio: \texttt{python -m pip install -r requirements.txt}, seguido de \texttt{python reproducir.py}. Solo verificación y gráficos: \texttt{python reproducir.py --solo-analisis}. La identificación de la versión se completa con el historial de commits y las huellas del registro de ejecución.
+
+\bibitem{omnibus2026} Comisión Europea (2026). \textit{AI Omnibus enters into force}. 27 de julio de 2026. \url{https://digital-strategy.ec.europa.eu/en/news/ai-omnibus-enters-force}. Consulta: 13 de octubre de 2026.
+\end{thebibliography}
+
+\appendix
+\chapter{Oferta de referencia y CVs sintéticos completos}
+\textbf{Oferta ficticia.} Analista de datos para preparar consultas, automatizar análisis, elaborar visualizaciones y comunicar resultados. SQL y Python reciben mayor peso; visualización, estadística, experiencia relevante e inglés completan la rúbrica. El pase a la siguiente fase se define por $q\geq6$. Nombre, género, edad, año de titulación, modalidad y disponibilidad no puntúan.
+
+Los ejemplos siguientes proceden del conjunto de prueba de la réplica 11. Se selecciona el primer perfil positivo en orden de identificador y dos de sus variantes, junto con el primer perfil negativo. La regla de selección no busca casos de error llamativos. Los nombres y trayectorias son ficticios. Los identificadores sirven para localizar las mismas observaciones en el recurso reproducible \cite{repositorio2026}.
+\subsection*{CV 66; perfil 11; puntuación 2; etiqueta 0}
+\begin{quote}\small Nombre ficticio: David Pérez. Género: hombre. Edad: 29 años.\par PERFIL. Profesional organizado, con interés en resolver necesidades de información del sector de comercio. Busco una posición de análisis con objetivos definidos y revisión de resultados.\par - PROYECTO. Consolidación de registros. La entrega consistió en un registro de entregas. El caso se describe para ilustrar responsabilidades; no se atribuyen resultados económicos ni títulos adicionales.\par - COMPETENCIAS. soporte documental y revisión de registros. Herramientas complementarias: presentaciones, Linux, ofimática, Git. Distingo los requisitos del encargo y comunico las limitaciones de los datos disponibles.\par - EXPERIENCIA. Experiencia relevante: 3 años. He trabajado en 1 equipos de empresas ficticias, preparando entregables, revisando inconsistencias y documentando procesos para otras áreas.\par - IDIOMAS. Inglés: B2. Utilizo documentación de trabajo y preparo resúmenes para el equipo, dentro del nivel indicado.\par - FORMACIÓN. grado en ingeniería informática. Finalización: 2017. Formación complementaria de 120 horas en organización de información; no constituye certificación adicional de las competencias anteriores.
+\end{quote}
+\subsection*{CV 348; perfil 58; puntuación 7; etiqueta 1}
+\begin{quote}\small Nombre ficticio: Iván Ramos. Género: hombre. Edad: 28 años.\par PERFIL. Profesional organizado, con interés en resolver necesidades de información del sector de telecomunicaciones. Busco una posición de análisis con objetivos definidos y revisión de resultados.\par \par EXPERIENCIA. Experiencia relevante: 7 años. He trabajado en 3 equipos de empresas ficticias, preparando entregables, revisando inconsistencias y documentando procesos para otras áreas.\par \par COMPETENCIAS. programación en Python, análisis estadístico e intervalos de confianza, consultas de bases de datos con SQL. Herramientas complementarias: Excel, ofimática, documentación. Distingo los requisitos del encargo y comunico las limitaciones de los datos disponibles.\par \par FORMACIÓN. grado en física. Finalización: 2018. Formación complementaria de 20 horas en organización de información; no constituye certificación adicional de las competencias anteriores.\par \par IDIOMAS. Inglés: B2. Utilizo documentación de trabajo y preparo resúmenes para el equipo, dentro del nivel indicado.\par \par PROYECTO. Revisión de inventario. La entrega consistió en un resumen de incidencias. El caso se describe para ilustrar responsabilidades; no se atribuyen resultados económicos ni títulos adicionales.\par \par FORMA DE TRABAJO. Prefiero instrucciones verificables y revisiones periódicas. Modalidad: híbrida. Disponibilidad: un mes.
+\end{quote}
+\subsection*{CV 353; perfil 58; puntuación 7; etiqueta 1}
+\begin{quote}\small Nombre ficticio: Nuria Molina. Género: mujer. Edad: 58 años.\par PERFIL. Profesional organizada, con interés en resolver necesidades de información del sector de telecomunicaciones. Busco una posición de análisis con objetivos definidos y revisión de resultados.\par \par EXPERIENCIA. Experiencia relevante: 7 años. He trabajado en 3 equipos de empresas ficticias, preparando entregables, revisando inconsistencias y documentando procesos para otras áreas.\par \par COMPETENCIAS. programación en Python, análisis estadístico e intervalos de confianza, consultas de bases de datos con SQL. Herramientas complementarias: Excel, ofimática, documentación. Distingo los requisitos del encargo y comunico las limitaciones de los datos disponibles.\par \par FORMACIÓN. grado en física. Finalización: 1988. Formación complementaria de 20 horas en organización de información; no constituye certificación adicional de las competencias anteriores.\par \par IDIOMAS. Inglés: B2. Utilizo documentación de trabajo y preparo resúmenes para el equipo, dentro del nivel indicado.\par \par PROYECTO. Revisión de inventario. La entrega consistió en un resumen de incidencias. El caso se describe para ilustrar responsabilidades; no se atribuyen resultados económicos ni títulos adicionales.\par \par FORMA DE TRABAJO. Prefiero instrucciones verificables y revisiones periódicas. Modalidad: híbrida. Disponibilidad: un mes.
+\end{quote}
+
+\chapter{Ficha del conjunto y de los modelos}
+\begin{longtable}{p{3.2cm}p{10cm}}
+\toprule Elemento & Descripción y alcance\\\midrule\endhead
+Procedencia & Generación programática a partir de listas y reglas explícitas; sin scraping, APIs generativas ni currículums personales.\\
+Unidad & Perfil profesional y seis variantes textuales demográficas emparejadas.\\
+Población & No existe marco muestral laboral real. La población de referencia es la distribución del generador.\\
+Variables puntuables & SQL, Python, visualización, estadística, años relevantes e inglés.\\
+Variables no puntuables & Titulación, sector, equipos, cursos, proyecto, entregable, modalidad, disponibilidad, competencias complementarias y estilo.\\
+Variables de auditoría & Grupo interseccional, edad, género, pertenencia de partición, retención, etiqueta de referencia, observada y reparada.\\
+Uso previsto & Enseñanza, reproducción y análisis de mecanismos de sesgo en un entorno controlado.\\
+Uso excluido & Decisiones reales sobre personas o afirmaciones de representatividad del mercado laboral.\\
+Modelos & LR y SVM lineal sobre TF--IDF; objetivo binario de pase a una fase posterior.\\
+Información de ajuste & Texto transformado, etiqueta de entrenamiento y, cuando corresponde, pesos obtenidos con grupo y etiqueta.\\
+Información de evaluación & Referencia limpia y grupos; ambos necesarios para calcular errores desagregados.\\
+Supervisión & No se ejecuta un proceso humano de selección. La reparación de etiquetas es una simulación con acceso perfecto a la rúbrica.\\
+Mantenimiento & Cualquier cambio del generador, rúbrica, librerías o particiones exige registrar versión y volver a evaluar.\\\bottomrule
+\end{longtable}
+
+\chapter{Reproducibilidad y controles de integridad}
+La referencia bibliográfica del software reúne el enlace público, la versión y los comandos de ejecución \cite{repositorio2026}. El recurso contiene configuración, dependencias fijadas, datos comprimidos sin pérdida, modelos representativos, predicciones y figuras. La compresión no elimina campos del análisis. El documento se genera a partir de salidas verificadas, evitando transcribir resultados manualmente.
+
+La reproducción completa requiere generar y ajustar nuevamente; volver a dibujar salidas guardadas comprueba el análisis, pero no reproduce el entrenamiento. La prueba reducida de funcionamiento no constituye evidencia para las cifras de la memoria. Pueden existir pequeñas diferencias numéricas entre plataformas o bibliotecas, especialmente en puntuaciones próximas al umbral; las versiones y el uso de un hilo ayudan a reducirlas.
+
+Los controles verifican: identificación única de perfiles; conservación conjunta de variantes; recomputación de la rúbrica; ausencia de perfiles de prueba en entrenamiento; corrupción exclusivamente de positivos; reparación únicamente en perfiles auditados; concordancia de decisiones con el margen; selección de C por validación; recálculo independiente de F1, AUC y brecha TPR; y puntuaciones idénticas tras limpieza para las variantes equivalentes. Son controles de consistencia y prevención de errores, no una certificación independiente del estudio.
+
+Para reconstruir una decisión lineal se aplica al texto la transformación del tratamiento, se utiliza su vectorizador ajustado y se suman contribuciones léxicas e intercepto. Mostrar solo los términos de mayor magnitud es una explicación parcial: la suma completa debe incluir los restantes. Por ello, el material conserva tanto el modelo representativo como las predicciones, en lugar de ofrecer únicamente una descripción narrativa del resultado.
+\end{document}
