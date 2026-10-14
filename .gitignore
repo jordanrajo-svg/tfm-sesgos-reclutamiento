@@ -1,8 +1,0 @@
-__pycache__/
-.venv/
-*.aux
-*.log
-*.out
-*.toc
-*.lof
-resultados_prueba/
